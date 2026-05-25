@@ -1,0 +1,77 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "listId": "YOUR_LIST_ID_HERE",
+        "events": [
+          "cardMovedToList"
+        ],
+        "additionalFields": {}
+      },
+      "id": "9a0b1d4d-7f2e-7b9d-1f2h-9e0b1d4d7f2e",
+      "name": "Trello Trigger",
+      "type": "n8n-nodes-base.trelloTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "credentials": {
+        "trelloApi": {
+          "id": "YOUR_TRELLO_CREDENTIAL_ID",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_EVOLUTION_API_URL/message/sendText/YOUR_INSTANCE_NAME",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "5511999999999"
+            },
+            {
+              "name": "text",
+              "value": "=O card *{{ $json.name }}* foi movido para a lista *{{ $json.listAfter.name }}*!"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b1c2e5e-8g3f-8c0e-2g3i-0f1c2e5e8g3f",
+      "name": "WhatsApp Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        500,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Trello Trigger": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

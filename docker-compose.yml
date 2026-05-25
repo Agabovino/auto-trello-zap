@@ -16,6 +16,14 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
+      - /home/agabo/.cloudflared/6c6ad132-6fc6-422c-8127-194c0adf16d2.json:/etc/cloudflared/tunnel-credentials.json:ro
+
 volumes:
   n8n_data:
     external: false

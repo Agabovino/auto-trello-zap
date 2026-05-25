@@ -2,6 +2,8 @@ services:
   n8n:
     image: n8nio/n8n:latest
     restart: always
+    networks:
+      - n8n_network
     ports:
       - "${N8N_PORT:-5678}:5678"
     environment:
@@ -19,10 +21,16 @@ services:
   tunnel:
     image: cloudflare/cloudflared:latest
     restart: always
+    networks:
+      - n8n_network
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
       - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
       - /home/agabo/.cloudflared/6c6ad132-6fc6-422c-8127-194c0adf16d2.json:/etc/cloudflared/tunnel-credentials.json:ro
+
+networks:
+  n8n_network:
+    driver: bridge
 
 volumes:
   n8n_data:

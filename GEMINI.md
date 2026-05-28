@@ -36,12 +36,17 @@ docker compose logs -f
 docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 ```
 
+## 📖 Documentação Adicional
+
+- [TUTORIAL.md](./TUTORIAL.md): Guia passo a passo para configuração do ambiente e integração detalhada das credenciais do WhatsApp (Meta Cloud API) e Trello.
+
 ## 🧠 Memória do Projeto
 
 - **Tunnel ID:** `6c6ad132-6fc6-422c-8127-194c0adf16d2`
 - **Nome do Túnel:** `scheduler-server`
 - **Domínio Principal:** `vivercatolico.com.br`
 - **Subdomínio n8n:** `n8n.vivercatolico.com.br`
+- **Status da Doc:** Tutorial de credenciais do WhatsApp Meta finalizado.
 
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*

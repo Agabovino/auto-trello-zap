@@ -118,3 +118,5 @@ Esta é a forma oficial e gratuita (até certos limites) de integrar o WhatsApp.
 Para importar os workflows abaixo, copie o JSON e cole diretamente na tela do n8n.
 
 *(Ver arquivos workflow_1.json e workflow_2.json neste repositório)*
+
+

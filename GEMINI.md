@@ -46,7 +46,11 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 - **Nome do Túnel:** `scheduler-server`
 - **Domínio Principal:** `vivercatolico.com.br`
 - **Subdomínio n8n:** `n8n.vivercatolico.com.br`
-- **Status da Doc:** Tutorial de credenciais do WhatsApp Meta finalizado.
+- **Status da Doc:** Tutorial de credenciais finalizado e ambiente blindado contra erros de proxy.
+- **Correções Recentes:**
+    - Resolvido conflito de Tunnel ID (502 Bad Gateway).
+    - Configurado `N8N_TRUST_PROXY=true` e `N8N_PROXY_HOPS=1` para estabilidade da interface UI.
+    - Validada integração com WhatsApp Meta API v25.0.
 
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*

@@ -1,0 +1,8 @@
+.env
+*.txt
+*.json
+!workflow_1.json
+!workflow_2.json
+cloudflared-config.yml
+node_modules/
+docker-compose.override.yml

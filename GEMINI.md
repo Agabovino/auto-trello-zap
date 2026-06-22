@@ -42,15 +42,16 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 
 ## 🧠 Memória do Projeto
 
-- **Tunnel ID:** `6c6ad132-6fc6-422c-8127-194c0adf16d2`
-- **Nome do Túnel:** `scheduler-server`
+- **Tunnel ID:** `83f60782-a2df-47bc-83df-4adea1f81a65`
+- **Nome do Túnel:** `trello_auto_zap` (Gerenciado via Cloudflare Zero Trust Dashboard)
 - **Domínio Principal:** `vivercatolico.com.br`
 - **Subdomínio n8n:** `n8n.vivercatolico.com.br`
-- **Status da Doc:** Tutorial de credenciais finalizado e ambiente blindado contra erros de proxy.
+- **Status da Doc:** Atualizado com túnel gerenciado via painel do Cloudflare e sem arquivos de credenciais locais.
 - **Correções Recentes:**
-    - Resolvido conflito de Tunnel ID (502 Bad Gateway).
+    - Migrado túnel local para túnel gerenciado (Managed Tunnel) usando `TUNNEL_TOKEN`.
+    - Atualizado `docker-compose.yml` para consumir o token do túnel sem expor arquivos locais.
     - Configurado `N8N_TRUST_PROXY=true` e `N8N_PROXY_HOPS=1` para estabilidade da interface UI.
-    - Validada integração com WhatsApp Meta API v25.0.
+    - Instalado Docker e Docker Compose no Ubuntu 26.04.
 
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*

@@ -25,10 +25,9 @@ services:
     restart: always
     networks:
       - n8n_network
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
-      - /home/agabo/.cloudflared/6c6ad132-6fc6-422c-8127-194c0adf16d2.json:/etc/cloudflared/tunnel-credentials.json:ro
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
 
 networks:
   n8n_network:

@@ -5,13 +5,19 @@ Este projeto fornece um ambiente dockerizado para o n8n, configurado para automa
 ## 🏗️ Arquitetura do Ambiente
 
 - **n8n:** O motor de automação (porta interna 5678).
+- **Evolution API:** API de integração do WhatsApp via Baileys (porta externa 8081).
+- **PostgreSQL:** Banco de dados relacional para a Evolution API.
+- **Redis:** Gerenciador de fila e cache para sessões da Evolution API.
 - **Cloudflared:** Cliente do Cloudflare Tunnel para exposição do subdomínio `n8n.vivercatolico.com.br`.
-- **Docker Network:** Ambos os serviços rodam na rede `n8n_network`, permitindo que o túnel acesse o n8n via `http://n8n:5678`.
+- **Docker Network:** Todos os serviços rodam na rede `n8n_network`, permitindo conexões diretas via hostname DNS interno do Docker (ex: `http://n8n:5678` e `http://evolution:8080`).
 
 ## 🛠️ Stack Tecnológica
 
 - **Docker / Docker Compose**
 - **n8n** (Automation Tool)
+- **Evolution API** (WhatsApp Integration API)
+- **PostgreSQL 15** (Relational Database)
+- **Redis 7** (Cache & Queuing)
 - **Cloudflare Tunnel** (Ingress/Proxy)
 - **GitHub CLI** (Gestão de Repositório)
 
@@ -21,7 +27,7 @@ Para que os gatilhos externos funcionem (Trello e WhatsApp), as seguintes URLs d
 
 1.  **n8n Webhook URL:** `https://n8n.vivercatolico.com.br/`
 2.  **Trello Trigger:** Configurado via nó `Trello Trigger` no n8n.
-3.  **WhatsApp API:** Webhook apontando para `https://n8n.vivercatolico.com.br/webhook/whatsapp-to-trello`.
+3.  **WhatsApp/Evolution API:** Configurado globalmente ou por instância apontando para `http://n8n:5678/webhook/lead-capture` (comunicação de rede interna).
 
 ## 🚀 Comandos Úteis
 
@@ -38,7 +44,7 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 
 ## 📖 Documentação Adicional
 
-- [TUTORIAL.md](./TUTORIAL.md): Guia passo a passo para configuração do ambiente e integração detalhada das credenciais do WhatsApp (Meta Cloud API) e Trello.
+- [TUTORIAL.md](./TUTORIAL.md): Guia passo a passo para configuração do ambiente e integração detalhada das credenciais do WhatsApp (Evolution API / Meta Cloud API) e Trello.
 
 ## 🧠 Memória do Projeto
 
@@ -52,6 +58,14 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - Atualizado `docker-compose.yml` para consumir o token do túnel sem expor arquivos locais.
     - Configurado `N8N_TRUST_PROXY=true` e `N8N_PROXY_HOPS=1` para estabilidade da interface UI.
     - Instalado Docker e Docker Compose no Ubuntu 26.04.
+    - Centralizada a busca e extração de dados do card do Trello (nome, descrição, responsável e telefone do cliente via campos customizados ou parsing de descrição) antes do nó Switch.
+    - Criado o fluxo `workflow-meta-verify.json` para responder à verificação GET obrigatória da Meta (evitando erro #1004).
+    - Adicionado suporte à **Evolution API v2** no `docker-compose.yml` com banco de dados **PostgreSQL** e **Redis** dedicado para gerenciar filas de mensagens.
+    - Resolvido conflito de porta da Evolution API (alterada de `8080` para `8081` para não colidir com o `fish-speech-server`).
+    - Desenvolvida lógica de **Regex ultra robusta** para extração de telefones (aceita DDD separado, 9 dígitos com espaços, etc.) e nomes case-insensitive.
+    - Configurado o nó `Confirmar via WhatsApp` para enviar as mensagens através da Evolution API usando a rede Docker interna (`http://evolution:8080/message/sendText/...`) com tratamento de quebras de linha (`JSON.stringify`).
+    - Removido workflows duplicados no banco de dados SQLite do n8n para prevenir colisões de registro de webhook.
 
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*
+

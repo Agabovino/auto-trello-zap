@@ -20,6 +20,70 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    networks:
+      - n8n_network
+    environment:
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=evolution
+      - POSTGRES_DB=evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - n8n_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  evolution:
+    image: evoapicloud/evolution-api:latest
+    restart: always
+    networks:
+      - n8n_network
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SERVER_URL=http://evolution:8080
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-mude-esta-chave-agora}
+      # Banco de dados
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution@postgres:5432/evolution
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution
+      # Cache e Redis
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/6
+      # Webhook global → n8n
+      - WEBHOOK_GLOBAL_URL=http://n8n:5678/webhook/lead-capture
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=false
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=false
+      - WEBHOOK_EVENTS_SEND_MESSAGE=false
+      - LOG_LEVEL=ERROR
+    volumes:
+      - evolution_data:/evolution/instances
+
   tunnel:
     image: cloudflare/cloudflared:latest
     restart: always
@@ -36,3 +100,10 @@ networks:
 volumes:
   n8n_data:
     external: false
+  postgres_data:
+    external: false
+  redis_data:
+    external: false
+  evolution_data:
+    external: false
+

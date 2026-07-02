@@ -237,23 +237,22 @@ João Silva
 ---
 
 ### Fluxo 2 — Notificações Trello → WhatsApp (Corretores)
-**Arquivo:** `workflow-completo.json` (parte inferior)
-**Objetivo:** Notificar Ágabo ou Samara via WhatsApp ao mover um card para a coluna com o nome do corretor.
+**Arquivo:** `🔐 Meta Webhook Verification (GET).json`
+**Objetivo:** Notificar Ágabo ou Brisa via WhatsApp ao mover um card para a coluna com o nome do corretor.
 
-**Estrutura do Workflow (7 nós):**
-1. **Trello Trigger** — dispara ao mover qualquer card no board `6a1494722dc95789afdde69b`
-2. **Filter: É movimento de lista?** — garante que é um movimento entre listas
-3. **Trello: Obter Detalhes do Card** — busca dados completos
-4. **Code: Extrair Variáveis** — extrai nome, responsável, telefone e URL do card
-5. **Switch: Quem é o Corretor?** — roteia pelo nome da lista de destino:
-   - Saída 0 → `"Corretor Ágabo"` → `5583999931422`
-   - Saída 1 → `"Corretora Samara"` → `5583993685452`
-6. **HTTP Request: WhatsApp Notify agabo**
-7. **HTTP Request: WhatsApp Notify Sam**
+**Estrutura do Workflow:**
+1. **Trello Trigger** — dispara ao mover/criar qualquer card no board `6a1494722dc95789afdde69b`
+2. **Filter: É movimento de lista?** — garante que o movimento destino não está vazio
+3. **Switch: Quem é o Corretor?** — roteia pelo nome da lista de destino:
+   - Saída 0 → `"Corretor Ágabo"` → envia para o corretor Ágabo no número `5583999931422`
+   - Saída 1 → `"Corretor Brisa"` → envia para a corretora Brisa no número `5583921485647` (número associado ao Evolution API)
+4. **HTTP Request: Confirmar via WhatsApp** (Ágabo) — envia via Evolution API
+5. **HTTP Request: Confirmar via WhatsApp2** (Brisa) — envia via Evolution API
 
-> **Pré-requisito:** O template `lead_atribuido_corretor` (idioma `pt_BR`) deve estar aprovado na conta Meta/WhatsApp Business.
+> **Configuração:** As mensagens são enviadas via chamada POST da Evolution API para `http://evolution:8080/message/sendText/meu-numero`.
 
 ---
+
 
 ### Fluxo 3 — Mensagens Genéricas (WhatsApp → Trello)
 **Arquivo:** `workflow-completo.json` (parte superior)

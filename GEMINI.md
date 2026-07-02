@@ -65,6 +65,8 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - Desenvolvida lógica de **Regex ultra robusta** para extração de telefones (aceita DDD separado, 9 dígitos com espaços, etc.) e nomes case-insensitive.
     - Configurado o nó `Confirmar via WhatsApp` para enviar as mensagens através da Evolution API usando a rede Docker interna (`http://evolution:8080/message/sendText/...`) com tratamento de quebras de linha (`JSON.stringify`).
     - Removido workflows duplicados no banco de dados SQLite do n8n para prevenir colisões de registro de webhook.
+    - Corrigido e habilitado o fluxo de movimentação de cards no arquivo `🔐 Meta Webhook Verification (GET).json`, implementando regras de filtragem de listas reais e envio de notificações via Evolution API para os corretores Ágabo (`5583999931422`) e Brisa (`5583921485647`).
+
 
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*

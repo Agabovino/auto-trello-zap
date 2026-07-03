@@ -350,3 +350,20 @@ Copie o JSON do arquivo e cole diretamente no n8n via **Import from JSON**.
 | Número Ágabo | `5583999931422` |
 | Número Samara | `5583993685452` |
 | Template WhatsApp | `lead_atribuido_corretor` (idioma: `pt_BR`) |
+
+---
+
+## 7. Solução de Problemas Comuns (Troubleshooting)
+
+### ⚠️ Mensagens Presas em "PENDING" na Evolution API
+Se as mensagens ficarem travadas em `PENDING` indefinidamente no banco de dados e não chegarem aos destinatários:
+1. **Desconexão do Aparelho:** O WhatsApp pode ter desconectado a sessão a partir do aplicativo no celular (Aparelhos Conectados).
+   * **Solução:** Delete/Deslogue a instância e refaça a conexão (escanear QR Code) no Evolution API Manager. O nome da instância **deve ser exatamente `meu-numero`**.
+2. **Formato do Número (Região Nordeste / DDD 83):** Para DDDs fora do intervalo 11-27, o WhatsApp não utiliza o 9º dígito extra internamente nos identificadores JID. 
+   * **Erro:** Se enviar para `55839921485647` (dois 9s), a Evolution API consultará o WhatsApp e receberá a resposta `"exists": false`, rejeitando o envio.
+   * **Solução:** Envie para `5583921485647` (apenas um 9). A API normalizará o JID com sucesso.
+
+### ⚠️ Erro de TypeError no Nó de Filtro (n8n)
+* **Erro:** `TypeError: GenericFunctions_1.compareOperationFunctions[condition.operation] is not a function`.
+* **Causa:** O nó de filtro (Filter V1) foi exportado/configurado com a operação `"notEmpty"`, mas em algumas versões do n8n a nomenclatura aceita é `"isNotEmpty"`.
+* **Solução:** Edite o JSON do workflow ou o nó do filtro para garantir que a operação selecionada seja `"isNotEmpty"`.

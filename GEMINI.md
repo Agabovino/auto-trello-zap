@@ -66,6 +66,10 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - Configurado o nó `Confirmar via WhatsApp` para enviar as mensagens através da Evolution API usando a rede Docker interna (`http://evolution:8080/message/sendText/...`) com tratamento de quebras de linha (`JSON.stringify`).
     - Removido workflows duplicados no banco de dados SQLite do n8n para prevenir colisões de registro de webhook.
     - Corrigido e habilitado o fluxo de movimentação de cards no arquivo `🔐 Meta Webhook Verification (GET).json`, implementando regras de filtragem de listas reais e envio de notificações via Evolution API para os corretores Ágabo (`5583999931422`) e Brisa (`5583921485647`).
+    - Configurada e testada com sucesso a chave da API pública do n8n (`N8N_API_KEY`) no arquivo `.env` para controle remoto e automações programáticas adicionais.
+    - Identificado e corrigido erro de `TypeError` no nó de filtro `É movimento de lista?` no workflow `🔐 Meta Webhook Verification (GET).json`, alterando a operação `"notEmpty"` para `"isNotEmpty"`.
+    - Solucionado o problema de mensagens de saída presas em `PENDING` na Evolution API por meio da recriação e reconexão da instância `meu-numero` via QR Code.
+    - Corrigido o número telefônico da corretora Brisa no nó `Confirmar via WhatsApp2` para `5583921485647` (com apenas um 9), pois o WhatsApp rejeita o formato de duplo 9 (`55839921485647`) no JID interno para o DDD 83, retornando `"exists": false`.
 
 
 ---

@@ -333,13 +333,13 @@ Mova qualquer card no Trello para a lista **"Corretor Ágabo"** ou **"Corretora 
 
 ## 5. Importando os Workflows no n8n
 
-Copie o JSON do arquivo e cole diretamente no n8n via **Import from JSON**.
+Copie o JSON do arquivo e cole diretamente no n8n via **Import from JSON** (ou importe arquivos via interface).
 
 | Arquivo | Finalidade |
 |---|---|
-| `workflow-meta-verify.json` | **Validação GET da Meta** — ativar só durante o cadastro do webhook |
-| `workflow-lead-capture.json` | Captura de leads via WhatsApp → Trello (coluna Leads) |
-| `workflow-completo.json` | Notificações Trello → WhatsApp + cards genéricos |
+| `🔐 Meta Webhook Verification (GET).json` | **Workflow Principal Atualizado** — Contém o Webhook de validação da Meta, captura dinâmica de leads da Evolution API (com filtro de instância e deduplicação em tempo real direto no Trello) e envio automático de alertas para corretores quando cards são movidos. |
+| `workflow-setup-trello-credential.json` | **Setup de Credenciais** — Cria/atualiza automaticamente a credencial Trello do n8n com base nas variáveis do arquivo `.env` (`TRELLO_API_KEY`, `TRELLO_TOKEN`). |
+| `workflow-import-historical-contacts.json` | **Importação Histórica** — Puxa todos os contatos existentes de uma instância conectada e insere no Trello como lead se ainda não existirem. |
 | `workflow_1.json` | Template base: WhatsApp → Trello (sem parsing) |
 | `workflow_2.json` | Template base: Trello Trigger → WhatsApp (simples) |
 
@@ -376,3 +376,32 @@ Se as mensagens ficarem travadas em `PENDING` indefinidamente no banco de dados 
 * **Erro:** `TypeError: GenericFunctions_1.compareOperationFunctions[condition.operation] is not a function`.
 * **Causa:** O nó de filtro (Filter V1) foi exportado/configurado com a operação `"notEmpty"`, mas em algumas versões do n8n a nomenclatura aceita é `"isNotEmpty"`.
 * **Solução:** Edite o JSON do workflow ou o nó do filtro para garantir que a operação selecionada seja `"isNotEmpty"`.
+
+---
+
+## 8. Seleção de Instância Fonte e Importação Histórica
+
+### 📱 Como selecionar qual número/instância gera Leads
+A Evolution API suporta múltiplos números conectados (ex: `meu-numero`, `atendimoveis_meta`). Por padrão, você pode decidir qual delas o n8n vai processar editando o arquivo `.env`:
+
+1. Abra o arquivo `.env`.
+2. Edite a linha `EVOLUTION_INSTANCE`:
+   * **Para filtrar apenas uma instância:** `EVOLUTION_INSTANCE=atendimoveis_meta`
+   * **Para processar de QUALQUER número conectado:** `EVOLUTION_INSTANCE=` (deixe em branco)
+3. Reinicie o container do n8n para aplicar:
+   ```bash
+   docker compose up -d n8n
+   ```
+
+### 🔄 Importação Retroativa de Contatos Antigos
+Como os webhooks de mensagens só disparam para **novas conversas recebidas**, as conversas históricas que você já possui na Evolution API (ex: 3.000 contatos) não viram cards automaticamente. Para puxar todo esse histórico de uma vez:
+
+1. Importe o arquivo `workflow-import-historical-contacts.json` no n8n.
+2. Certifique-se de que a credencial Trello do workflow está selecionada.
+3. Clique em **"Listen for test event"** ou execute o trigger **Iniciar Importação Manual**.
+4. O n8n vai:
+   * Chamar a API da Evolution para obter toda a lista de contatos da instância definida no seu `.env` (`EVOLUTION_INSTANCE`).
+   * Puxar a lista de cards existentes no Trello.
+   * Filtrar e remover grupos e números que já possuem card no Trello.
+   * Criar um card no topo da lista **Leads** para cada contato novo de forma 100% automatizada.
+

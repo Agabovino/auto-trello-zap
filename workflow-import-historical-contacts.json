@@ -7,7 +7,37 @@
       "name": "Iniciar Importação Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-600, 300]
+      "position": [-700, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "id": "node-get-trello-cards",
+      "name": "Obter Cards Trello",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [-480, 300],
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrupa todos os cards retornados do Trello em um único item para que o próximo nó rode apenas 1 vez\nreturn [{\n  json: {\n    cards: $input.all().map(item => item.json)\n  }\n}];"
+      },
+      "id": "node-agrupar-cards",
+      "name": "Agrupar Cards Trello",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-260, 300]
     },
     {
       "parameters": {
@@ -35,37 +65,17 @@
       "name": "Obter Contatos Evolution",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [-380, 300]
+      "position": [-40, 300]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "trelloApi",
-        "options": {}
-      },
-      "id": "node-get-trello-cards",
-      "name": "Obter Cards Trello",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [-160, 480],
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos que não existem no Trello (sem duplicados)\n// ═══════════════════════════════════════════════════════\n\nconst contactsItems = $('Obter Contatos Evolution').all();\nconst trelloItems = $('Obter Cards Trello').all();\n\nconst existingCards = trelloItems.map(item => ({\n  name: (item.json.name || '').toLowerCase(),\n  desc: (item.json.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const contact of contactsItems) {\n  const rawJid = contact.json.remoteJid || '';\n  if (contact.json.isGroup === true || !rawJid) continue;\n\n  const phone = rawJid.split('@')[0];\n  const pushName = (contact.json.pushName || '').trim();\n\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: pushName ? `${pushName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos que não existem no Trello (sem duplicados)\n// ═══════════════════════════════════════════════════════\n\nconst contactsItems = $input.all();\nconst cardsData = $(\"Agrupar Cards Trello\").first().json.cards || [];\n\nconst existingCards = cardsData.map(card => ({\n  name: (card.name || '').toLowerCase(),\n  desc: (card.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const contact of contactsItems) {\n  const rawJid = contact.json.remoteJid || '';\n  if (contact.json.isGroup === true || !rawJid) continue;\n\n  const phone = rawJid.split('@')[0];\n  const pushName = (contact.json.pushName || '').trim();\n\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: pushName ? `${pushName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
       },
       "id": "node-compare-leads",
       "name": "Filtrar Apenas Novos Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, 300]
+      "position": [180, 300]
     },
     {
       "parameters": {
@@ -76,7 +86,7 @@
       "name": "Split in Batches",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [280, 300]
+      "position": [400, 300]
     },
     {
       "parameters": {
@@ -91,7 +101,7 @@
       "name": "Criar Card no Trello",
       "type": "n8n-nodes-base.trello",
       "typeVersion": 1,
-      "position": [520, 200],
+      "position": [640, 200],
       "credentials": {
         "trelloApi": {
           "id": "WGhjY0TBSOX8LgMk",
@@ -108,22 +118,11 @@
       "name": "Esperar 10 Segundos",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [760, 200]
+      "position": [880, 200]
     }
   ],
   "connections": {
     "Iniciar Importação Manual": {
-      "main": [
-        [
-          {
-            "node": "Obter Contatos Evolution",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Obter Contatos Evolution": {
       "main": [
         [
           {
@@ -135,6 +134,28 @@
       ]
     },
     "Obter Cards Trello": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Cards Trello",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Cards Trello": {
+      "main": [
+        [
+          {
+            "node": "Obter Contatos Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obter Contatos Evolution": {
       "main": [
         [
           {

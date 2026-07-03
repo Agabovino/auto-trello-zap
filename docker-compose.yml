@@ -22,6 +22,8 @@ services:
       - TRELLO_TOKEN=${TRELLO_TOKEN:-}
       # Evolution API - instância fonte dos leads
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-meu-numero}
+      # Permitir leitura de variáveis de ambiente no n8n
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     volumes:
       - n8n_data:/home/node/.n8n
 

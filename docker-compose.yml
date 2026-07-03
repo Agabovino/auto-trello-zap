@@ -17,6 +17,11 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_TRUST_PROXY=${N8N_TRUST_PROXY:-false}
       - N8N_PROXY_HOPS=1
+      # Trello credentials (opcionais - se definidos, serão usados nos workflows)
+      - TRELLO_API_KEY=${TRELLO_API_KEY:-}
+      - TRELLO_TOKEN=${TRELLO_TOKEN:-}
+      # Evolution API - instância fonte dos leads
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-meu-numero}
     volumes:
       - n8n_data:/home/node/.n8n
 

@@ -155,31 +155,43 @@ docker compose up -d
 ```
 
 Verifique se subiu:
-```bash
-curl http://localhost:8080
-# Deve retornar: {"status":"online"}
-```
 
-#### 2. Criar uma instância e conectar via QR Code
+*   **Acesso Local:**
+    ```bash
+    curl http://localhost:8081
+    # Deve retornar: {"status":"online"}
+    ```
+*   **Acesso Remoto:**
+    ```bash
+    curl https://evolution.vivercatolico.com.br
+    # Deve retornar: {"status":"online"}
+    ```
+
+#### 2. Criar uma instância e conectar via QR Code (Remoto ou Local)
+
+Você pode configurar a instância usando chamadas de API (substitua `localhost:8081` por `evolution.vivercatolico.com.br` se for remoto):
 
 ```bash
 # 1. Criar instância
-curl -X POST http://localhost:8080/instance/create \
+curl -X POST http://localhost:8081/instance/create \
   -H "Content-Type: application/json" \
   -H "apikey: SUA_EVOLUTION_API_KEY" \
   -d '{"instanceName": "meu-numero", "qrcode": true}'
 
 # 2. Obter QR Code (formato base64 para escanear)
-curl http://localhost:8080/instance/connect/meu-numero \
+curl http://localhost:8081/instance/connect/meu-numero \
   -H "apikey: SUA_EVOLUTION_API_KEY"
 ```
+
+Alternativamente, você pode usar a interface visual **Evolution API Manager** acessando:
+👉 **`https://evolution.vivercatolico.com.br/manager/`** (ou `http://localhost:8081/manager/` localmente).
 
 Abra o WhatsApp no celular → **Aparelhos conectados** → **Conectar aparelho** → Escaneie o QR Code retornado.
 
 #### 3. Verificar conexão
 
 ```bash
-curl http://localhost:8080/instance/fetchInstances \
+curl http://localhost:8081/instance/fetchInstances \
   -H "apikey: SUA_EVOLUTION_API_KEY"
 # Deve mostrar "state": "open"
 ```

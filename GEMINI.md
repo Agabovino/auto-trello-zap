@@ -8,7 +8,7 @@ Este projeto fornece um ambiente dockerizado para o n8n, configurado para automa
 - **Evolution API:** API de integração do WhatsApp via Baileys (porta externa 8081).
 - **PostgreSQL:** Banco de dados relacional para a Evolution API.
 - **Redis:** Gerenciador de fila e cache para sessões da Evolution API.
-- **Cloudflared:** Cliente do Cloudflare Tunnel para exposição do subdomínio `n8n.vivercatolico.com.br`.
+- **Cloudflared:** Dois clientes de Cloudflare Tunnel dedicados para exposição segura dos subdomínios `n8n.vivercatolico.com.br` e `evolution.vivercatolico.com.br`.
 - **Docker Network:** Todos os serviços rodam na rede `n8n_network`, permitindo conexões diretas via hostname DNS interno do Docker (ex: `http://n8n:5678` e `http://evolution:8080`).
 
 ## 🛠️ Stack Tecnológica
@@ -48,12 +48,15 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 
 ## 🧠 Memória do Projeto
 
-- **Tunnel ID:** `83f60782-a2df-47bc-83df-4adea1f81a65`
-- **Nome do Túnel:** `trello_auto_zap` (Gerenciado via Cloudflare Zero Trust Dashboard)
+- **Túnel n8n:** ID `83f60782-a2df-47bc-83df-4adea1f81a65` (Nome: `trello_auto_zap`)
+- **Túnel Evolution:** ID `46bff066-a990-4081-8812-30896245c338` (Configurado via `TUNNEL_TOKEN_EVOLUTION`)
 - **Domínio Principal:** `vivercatolico.com.br`
-- **Subdomínio n8n:** `n8n.vivercatolico.com.br`
+- **Subdomínios:**
+    - n8n: `n8n.vivercatolico.com.br`
+    - Evolution API & Manager: `evolution.vivercatolico.com.br` (Interface visual em `/manager/`)
 - **Status da Doc:** Atualizado com túnel gerenciado via painel do Cloudflare e sem arquivos de credenciais locais.
 - **Correções Recentes:**
+    - Configurado acesso remoto seguro para a **Evolution API** e o seu **Manager** através de um túnel dedicado do Cloudflared (`tunnel-evolution`) apontando para o subdomínio `evolution.vivercatolico.com.br` na porta interna `8080` (porta `8081` externa no host), com acesso visual em `/manager/`.
     - Migrado túnel local para túnel gerenciado (Managed Tunnel) usando `TUNNEL_TOKEN`.
     - Atualizado `docker-compose.yml` para consumir o token do túnel sem expor arquivos locais.
     - Configurado `N8N_TRUST_PROXY=true` e `N8N_PROXY_HOPS=1` para estabilidade da interface UI.

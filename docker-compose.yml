@@ -63,7 +63,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - SERVER_URL=http://evolution:8080
+      - SERVER_URL=https://evolution.vivercatolico.com.br
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-mude-esta-chave-agora}
       # Banco de dados
       - DATABASE_PROVIDER=postgresql
@@ -92,6 +92,15 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+
+  tunnel-evolution:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    networks:
+      - n8n_network
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN_EVOLUTION}
 
 networks:
   n8n_network:

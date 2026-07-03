@@ -70,6 +70,7 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - Identificado e corrigido erro de `TypeError` no nó de filtro `É movimento de lista?` no workflow `🔐 Meta Webhook Verification (GET).json`, alterando a operação `"notEmpty"` para `"isNotEmpty"`.
     - Solucionado o problema de mensagens de saída presas em `PENDING` na Evolution API por meio da recriação e reconexão da instância `meu-numero` via QR Code.
     - Corrigido o número telefônico da corretora Brisa no nó `Confirmar via WhatsApp2` para `5583921485647` (com apenas um 9), pois o WhatsApp rejeita o formato de duplo 9 (`55839921485647`) no JID interno para o DDD 83, retornando `"exists": false`.
+    - **Redesenhada a lógica de captura de leads (via API do n8n):** qualquer mensagem recebida no WhatsApp (Evolution API ou Meta) agora gera um lead no Trello automaticamente — sem necessidade de o texto conter palavra-chave "lead". O fluxo não envia mais mensagem de resposta para o lead. O card contém nome (pushName do WhatsApp, se disponível) e número. Implementada **deduplicação via `$getWorkflowStaticData('global')`**: um mesmo número nunca vira dois cards diferentes. Novos nós adicionados: `Verificar Duplicata` (Code) e `É Novo Lead?` (Filter). O nó `Parsear Mensagem de Lead` foi reescrito para extrair `senderPhone`/`senderName` de qualquer evento `messages.upsert` da Evolution API ou webhook da Meta, ignorando mensagens próprias (`fromMe=true`) e grupos (`@g.us`).
 
 
 ---

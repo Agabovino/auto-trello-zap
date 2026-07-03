@@ -208,31 +208,27 @@ Para o número que você conectou via QR Code. Verifique as execuções no n8n �
 
 ## 3. Fluxos de Automação
 
-### Fluxo 1 — Captura de Leads (WhatsApp → Trello / coluna Leads)
-**Arquivo:** `workflow-lead-capture.json`
+### Fluxo 1 — Captura de Leads Automática (WhatsApp → Trello / coluna Leads)
+**Arquivo:** `🔐 Meta Webhook Verification (GET).json` (ou `workflow-whatsapp-lead-auto.json` para o fluxo isolado)
 **Endpoint:** `POST https://n8n.vivercatolico.com.br/webhook/lead-capture`
 
-**Objetivo:** Detectar mensagens com nome e telefone de um lead e criar automaticamente um card na coluna **Leads** do Trello.
+**Objetivo:** Qualquer pessoa que enviar uma mensagem para o número conectado vira um lead automaticamente no Trello, sem necessidade de enviar palavras-chave ou formatação específica. Não envia mensagens de resposta automáticas de volta para o cliente.
 
-**Formatos de mensagem aceitos:**
-```
-Lead: João Silva | 83 9 9999-0000
-João Silva - 83999990000
-Nome: João Silva | Tel: 83 9 9999-0000
-João Silva
-83999990000
-```
+**Como funciona a Deduplicação:**
+- Utiliza a propriedade `staticData` global do workflow do n8n para registrar cada número de telefone processado.
+- Caso o mesmo número envie novas mensagens subsequentes, o fluxo ignora a criação de cards duplicados, garantindo que cada número gere um único card no Trello.
 
-**Estrutura do Workflow (6 nós):**
-1. **Webhook** — recebe `POST /webhook/lead-capture`
-2. **Code: Parsear Mensagem de Lead** — extrai nome e telefone com regex; suporta Meta Cloud API e Evolution API
-3. **Filter: É um Lead?** — só avança se houver telefone válido
-4. **Trello: Criar Card** — cria no topo da lista "Leads" com nome, telefone, data e mensagem original
-5. **Code: Preparar Confirmação** — monta mensagem de retorno
-6. **HTTP Request: Confirmar via WhatsApp** — envia confirmação para o operador
+**Estrutura do Workflow (6 nós para o fluxo de Lead):**
+1. **Webhook** — recebe `POST /webhook/lead-capture` (suporta Evolution API e Meta Cloud API).
+2. **Code: Parsear Mensagem de Lead** — extrai o número (`senderPhone`) e o nome do contato (`pushName` / `profile.name` se disponíveis).
+3. **Filter: É um Lead?** — valida o payload e garante que é uma mensagem individual de entrada válida.
+4. **Code: Verificar Duplicata** — verifica no `staticData` se o número já foi cadastrado como lead.
+5. **Filter: É Novo Lead?** — filtra permitindo a continuação apenas se for um novo lead.
+6. **Trello: Criar Card** — cria o card no topo da lista "Leads" com o título `{Nome} ({Telefone})` ou `Lead {Telefone}` (se o nome for desconhecido).
 
 **⚠️ Configuração obrigatória:**
 - Substituir `SEU_LIST_ID_LEADS_AQUI` pelo ID real da lista "Leads" no nó Trello (ver seção anterior).
+
 
 ---
 
@@ -300,7 +296,7 @@ curl -X POST https://n8n.vivercatolico.com.br/webhook/lead-capture \
           "contacts": [{"profile": {"name": "Operador Teste"}, "wa_id": "5583999931422"}],
           "messages": [{
             "from": "5583999931422",
-            "text": {"body": "Lead: Maria Silva | 83 9 8888-7777"},
+            "text": {"body": "Olá, gostaria de mais informações!"},
             "type": "text"
           }]
         },
@@ -311,9 +307,10 @@ curl -X POST https://n8n.vivercatolico.com.br/webhook/lead-capture \
 ```
 
 **Resultado esperado:**
-- ✅ Card criado no topo da coluna **Leads** do Trello
-- ✅ Mensagem de confirmação enviada para `5583999931422`
+- ✅ Card criado no topo da coluna **Leads** do Trello (com título `Operador Teste (5583999931422)`)
 - ✅ Resposta `{"status": "ok", "received": true}` retornada
+- ⚠️ Nenhuma mensagem é enviada de volta para o remetente (evitando spam)
+- ⚠️ Se reenviar o comando para o mesmo número (`5583999931422`), o n8n ignorará e não gerará card duplicado.
 
 > **Nota:** A Meta também envia callbacks de **status** (leitura, entrega) que NÃO contêm `messages[]`. O workflow filtra automaticamente esses eventos (`skipReason: "Sem messages[] — provável status callback"`).
 

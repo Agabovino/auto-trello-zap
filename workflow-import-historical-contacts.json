@@ -69,13 +69,51 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos que não existem no Trello (sem duplicados)\n// ═══════════════════════════════════════════════════════\n\nconst contactsItems = $input.all();\nconst cardsData = $(\"Agrupar Cards Trello\").first().json.cards || [];\n\nconst existingCards = cardsData.map(card => ({\n  name: (card.name || '').toLowerCase(),\n  desc: (card.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const contact of contactsItems) {\n  const rawJid = contact.json.remoteJid || '';\n  if (contact.json.isGroup === true || !rawJid) continue;\n\n  const phone = rawJid.split('@')[0];\n  const pushName = (contact.json.pushName || '').trim();\n\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: pushName ? `${pushName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
+        "jsCode": "// Agrupa os contatos retornados da Evolution API em um único item para que o próximo nó rode apenas 1 vez\nreturn [{\n  json: {\n    contacts: $input.all().map(item => item.json)\n  }\n}];"
+      },
+      "id": "node-agrupar-contatos",
+      "name": "Agrupar Contatos Evolution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution:8080/chat/findChats/{{ $env.EVOLUTION_INSTANCE || 'meu-numero' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evo-zap-agabo-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {}
+      },
+      "id": "node-get-evolution-chats",
+      "name": "Obter Chats Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos de conversas dos últimos 2 meses que não existem no Trello\n// ═══════════════════════════════════════════════════════\n\nconst twoMonthsAgo = new Date();\ntwoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);\n\nconst chatsItems = $input.all();\nconst contactsData = $(\"Agrupar Contatos Evolution\").first().json.contacts || [];\nconst cardsData = $(\"Agrupar Cards Trello\").first().json.cards || [];\n\n// Mapeia pushNames dos contatos pelo número de telefone\nconst contactsMap = {};\nfor (const contact of contactsData) {\n  const rawJid = contact.remoteJid || '';\n  if (!rawJid || contact.isGroup) continue;\n  const phone = rawJid.split('@')[0];\n  const name = (contact.pushName || '').trim();\n  if (name) {\n    contactsMap[phone] = name;\n  }\n}\n\n// Mapeia cards do Trello para checar duplicação\nconst existingCards = cardsData.map(card => ({\n  name: (card.name || '').toLowerCase(),\n  desc: (card.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const chat of chatsItems) {\n  const updatedAtStr = chat.json.updatedAt;\n  if (!updatedAtStr) continue;\n\n  const updatedAtDate = new Date(updatedAtStr);\n  if (updatedAtDate < twoMonthsAgo) continue; // Pula conversas com mais de 2 meses\n\n  const rawJid = chat.json.remoteJid || '';\n  if (rawJid.endsWith('@g.us')) continue; // Ignora grupos\n\n  let phone = '';\n  if (rawJid.includes('@s.whatsapp.net') || rawJid.includes('@c.us')) {\n    phone = rawJid.split('@')[0];\n  } else {\n    const altJid = chat.json.lastMessage?.key?.remoteJidAlt || '';\n    if (altJid.includes('@s.whatsapp.net') || altJid.includes('@c.us')) {\n      phone = altJid.split('@')[0];\n    }\n  }\n\n  if (!phone) continue;\n\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = contactsMap[phone] || chat.json.pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: displayName !== 'Desconhecido' ? `${displayName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp (Últimos 2 meses)\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Última Conversa: ${new Date(updatedAtStr).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
       },
       "id": "node-compare-leads",
       "name": "Filtrar Apenas Novos Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [180, 300]
+      "position": [620, 300]
     },
     {
       "parameters": {
@@ -86,7 +124,7 @@
       "name": "Split in Batches",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [400, 300]
+      "position": [840, 300]
     },
     {
       "parameters": {
@@ -101,7 +139,7 @@
       "name": "Criar Card no Trello",
       "type": "n8n-nodes-base.trello",
       "typeVersion": 1,
-      "position": [640, 200],
+      "position": [1080, 200],
       "credentials": {
         "trelloApi": {
           "id": "WGhjY0TBSOX8LgMk",
@@ -118,7 +156,7 @@
       "name": "Esperar 10 Segundos",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [880, 200]
+      "position": [1320, 200]
     }
   ],
   "connections": {
@@ -156,6 +194,28 @@
       ]
     },
     "Obter Contatos Evolution": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Contatos Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Contatos Evolution": {
+      "main": [
+        [
+          {
+            "node": "Obter Chats Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obter Chats Evolution": {
       "main": [
         [
           {

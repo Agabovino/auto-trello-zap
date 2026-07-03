@@ -129,8 +129,8 @@
     {
       "parameters": {
         "listId": "6a1494722dc95789afdde75c",
-        "name": "={{ $json.cardTitle }}",
-        "description": "={{ $json.cardDescription }}",
+        "name": "={{ $input.item.json.cardTitle }}",
+        "description": "={{ $input.item.json.cardDescription }}",
         "additionalFields": {
           "pos": "top"
         }
@@ -140,6 +140,9 @@
       "type": "n8n-nodes-base.trello",
       "typeVersion": 1,
       "position": [1080, 200],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
       "credentials": {
         "trelloApi": {
           "id": "WGhjY0TBSOX8LgMk",

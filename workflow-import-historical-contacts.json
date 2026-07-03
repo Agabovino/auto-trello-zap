@@ -1,0 +1,147 @@
+{
+  "name": "🔄 Importar Contatos Históricos do WhatsApp → Trello",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-manual-trigger",
+      "name": "Iniciar Importação Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution:8080/chat/findContacts/{{ $env.EVOLUTION_INSTANCE || 'meu-numero' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evo-zap-agabo-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {}
+      },
+      "id": "node-get-evolution-contacts",
+      "name": "Obter Contatos Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [-380, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "id": "node-get-trello-cards",
+      "name": "Obter Cards Trello",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [-160, 480],
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos que não existem no Trello (sem duplicados)\n// ═══════════════════════════════════════════════════════\n\n// 1. Obter todos os contatos retornados pela Evolution API\nconst contactsItems = $('Obter Contatos Evolution').all();\n\n// 2. Obter todos os cards retornados do Trello\nconst trelloItems = $('Obter Cards Trello').all();\n\nconst existingCards = trelloItems.map(item => ({\n  name: (item.json.name || '').toLowerCase(),\n  desc: (item.json.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const contact of contactsItems) {\n  const rawJid = contact.json.remoteJid || '';\n  if (contact.json.isGroup === true || !rawJid) continue;\n\n  // Extrai o número de telefone (limpo)\n  const phone = rawJid.split('@')[0];\n  const pushName = (contact.json.pushName || '').trim();\n\n  // Verifica se o número já existe no Trello (no título ou descrição)\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: pushName ? `${pushName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
+      },
+      "id": "node-compare-leads",
+      "name": "Filtrar Apenas Novos Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "listId": "6a1494722dc95789afdde75c",
+        "name": "={{ $json.cardTitle }}",
+        "description": "={{ $json.cardDescription }}",
+        "additionalFields": {
+          "pos": "top"
+        }
+      },
+      "id": "node-create-trello-card",
+      "name": "Criar Card no Trello",
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [280, 300],
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Iniciar Importação Manual": {
+      "main": [
+        [
+          {
+            "node": "Obter Contatos Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obter Contatos Evolution": {
+      "main": [
+        [
+          {
+            "node": "Obter Cards Trello",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obter Cards Trello": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Apenas Novos Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Apenas Novos Leads": {
+      "main": [
+        [
+          {
+            "node": "Criar Card no Trello",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}

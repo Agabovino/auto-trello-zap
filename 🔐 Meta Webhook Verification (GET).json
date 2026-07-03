@@ -1,0 +1,439 @@
+{
+  "id": "wl1Dy5KQb0JzyBvf",
+  "name": "🔐 Meta Webhook Verification (GET)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3cb2d7c5-463f-4fe4-ac39-6bc8731b0952",
+      "name": "Webhook Lead Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-400, -64],
+      "webhookId": "ec5b9acb-cb32-4a42-aa42-bb781c3f61f1"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "allowedInstance",
+              "value": "={{ $env.EVOLUTION_INSTANCE || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-add-allowed-instance",
+      "name": "Adicionar allowedInstance",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [-220, -64]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// PARSING: Evolution API (Baileys) + Meta Cloud API\n// Filtra por instância configurada via env EVOLUTION_INSTANCE\n// Deixe EVOLUTION_INSTANCE vazio para aceitar qualquer instância\n// ═══════════════════════════════════════════════════════\n\nconst body = $input.item.json.body || $input.item.json;\n\nlet senderPhone = '';\nlet senderName  = 'Desconhecido';\nlet instanceName = '';\nlet shouldProcess = false;\n\n// ── Instância permitida (vazia = qualquer uma) ──\nconst allowedInstance = ($input.item.json.allowedInstance || '').trim();\n\n// ── Detectar formato ──\nconst isEvolution = !!(body?.event || body?.data?.key);\nconst isMeta      = !!(body?.object === 'whatsapp_business_account' || body?.entry);\n\nif (isEvolution) {\n  const event = body?.event || '';\n\n  // Só processar eventos de mensagens recebidas\n  if (event && event !== 'messages.upsert') {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: evento ignorado (${event})` } }];\n  }\n\n  const data = body?.data || {};\n\n  // Ignorar mensagens enviadas pelo próprio número\n  if (data?.key?.fromMe === true) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: fromMe=true, mensagem nossa' } }];\n  }\n\n  // Ignorar grupos\n  const remoteJid = data?.key?.remoteJid || '';\n  if (remoteJid.endsWith('@g.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: mensagem de grupo ignorada' } }];\n  }\n\n  // Ignorar se não tem JID de contato individual\n  if (!remoteJid.includes('@s.whatsapp.net') && !remoteJid.includes('@c.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: JID não reconhecido' } }];\n  }\n\n  // ── Filtro por instância ──\n  instanceName = body?.instance || data?.instanceName || body?.instanceName || '';\n  if (allowedInstance && instanceName && instanceName !== allowedInstance) {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: instância ignorada (${instanceName} != ${allowedInstance})` } }];\n  }\n\n  senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');\n  senderName  = data?.pushName || body?.pushName || '';\n  shouldProcess = true;\n\n} else if (isMeta) {\n  const entry   = body?.entry?.[0];\n  const change  = entry?.changes?.[0];\n  const value   = change?.value;\n  const message = value?.messages?.[0];\n\n  if (!message) {\n    return [{ json: { shouldProcess: false, skipReason: 'Meta: callback sem messages[]' } }];\n  }\n\n  senderPhone = message.from || '';\n  const contact = value?.contacts?.[0];\n  senderName  = contact?.profile?.name || '';\n  shouldProcess = true;\n\n} else {\n  return [{ json: { shouldProcess: false, skipReason: 'Formato não reconhecido', preview: JSON.stringify(body).substring(0, 200) } }];\n}\n\nif (!senderPhone) {\n  return [{ json: { shouldProcess: false, skipReason: 'Número do remetente não identificado' } }];\n}\n\n// ── Montar dados do card ──\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst source = isEvolution ? `Evolution API${instanceName ? ` (${instanceName})` : ''}` : 'Meta Cloud API';\n\nconst displayName = (senderName && senderName.trim() !== '') ? senderName.trim() : null;\nconst cardTitle = displayName ? `${displayName} (${senderPhone})` : `Lead ${senderPhone}`;\n\nconst cardDescription =\n  `📲 Lead capturado automaticamente via WhatsApp\\n` +\n  `Fonte: ${source}\\n\\n` +\n  (displayName ? `Nome: ${displayName}\\n` : `Nome: (desconhecido)\\n`) +\n  `Número: ${senderPhone}\\n` +\n  `Data/Hora: ${now}`;\n\nreturn [{\n  json: {\n    shouldProcess,\n    senderPhone,\n    senderName: displayName || '',\n    cardTitle,\n    cardDescription,\n    instanceName,\n    timestamp: now\n  }\n}];"
+      },
+      "id": "9b1f8029-39a3-4777-8e4f-aa35d9c6d2fd",
+      "name": "Parsear Mensagem de Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-50, -64]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldProcess }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "8c044add-7d3b-4ba1-961b-41df55ecfb14",
+      "name": "É um Lead?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [150, -64]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "trelloApi",
+        "options": {}
+      },
+      "id": "node-buscar-cards-trello",
+      "name": "Buscar Cards Existentes (Trello)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [376, -160],
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// DEDUPLICAÇÃO REAL: busca o número nos cards existentes no Trello\n// ═══════════════════════════════════════════════════════\n\nconst incomingData = $('É um Lead?').item.json;\nconst senderPhone = incomingData.senderPhone;\n\nconst existingCards = $input.all();\n\nconst alreadyExists = existingCards.some(card => {\n  const name = (card.json.name || '').toLowerCase();\n  const desc = (card.json.desc || '').toLowerCase();\n  return name.includes(senderPhone) || desc.includes(senderPhone);\n});\n\nreturn [{\n  json: {\n    ...incomingData,\n    isNewLead: !alreadyExists,\n    duplicateReason: alreadyExists ? `Número ${senderPhone} já existe no Trello` : null\n  }\n}];"
+      },
+      "id": "node-dedup-check",
+      "name": "Verificar Duplicata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [376, 16]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isNewLead }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-filter-new-lead",
+      "name": "É Novo Lead?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [580, -64]
+    },
+    {
+      "parameters": {
+        "listId": "6a1494722dc95789afdde75c",
+        "name": "={{ $json.cardTitle }}",
+        "description": "={{ $json.cardDescription }}",
+        "additionalFields": {
+          "pos": "top"
+        }
+      },
+      "id": "226992f4-a6f6-4828-a059-a7b8eb70a615",
+      "name": "Criar Card no Trello (Leads)",
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [784, -64],
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"ok\",\n  \"received\": true\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a0610114-96fc-4f40-b831-f516199705b0",
+      "name": "Resposta 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [992, -64]
+    },
+    {
+      "parameters": {
+        "id": "6a1494722dc95789afdde69b"
+      },
+      "id": "670a606a-5225-4f5e-8d67-1bc9a269ff65",
+      "name": "Trello Trigger",
+      "type": "n8n-nodes-base.trelloTrigger",
+      "typeVersion": 1,
+      "position": [-336, 256],
+      "webhookId": "ceb290a2-0cd0-412a-81c4-1990f2c8d505",
+      "credentials": {
+        "trelloApi": {
+          "id": "WGhjY0TBSOX8LgMk",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action.data.listAfter?.name }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "88c04148-9f7d-469f-83d2-01d84a5d3055",
+      "name": "É movimento de lista?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [-48, 256]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.action.data.listAfter?.name }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "Corretor Ágabo"
+            },
+            {
+              "value2": "Corretor Brisa",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "eef7ee69-6280-4a34-a1db-12619d0d2d13",
+      "name": "Quem é o Corretor?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [160, 224]
+    },
+    {
+      "parameters": {},
+      "id": "96361b47-261f-4023-a7aa-cd944aae843b",
+      "name": "Zap para Ágabo",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [464, 144]
+    },
+    {
+      "parameters": {},
+      "id": "84df08d8-873b-4350-8810-f4af6d530bc1",
+      "name": "Zap para Brisa",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [464, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE || 'meu-numero' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evo-zap-agabo-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5583999931422\",\n  \"text\": \"Olá! O lead *{{ $json.action.data.card.name }}* foi adicionado à sua coluna!\"\n}",
+        "options": {}
+      },
+      "id": "2c00e85f-2ccc-4bfa-97b0-d5eb69e7b82c",
+      "name": "Confirmar via WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [704, 144]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE || 'meu-numero' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evo-zap-agabo-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5583921485647\",\n  \"text\": \"Olá! O lead *{{ $json.action.data.card.name }}* foi adicionado à sua coluna!\"\n}",
+        "options": {}
+      },
+      "id": "dcf61f45-b2a2-49be-9ef2-aec4af808ed1",
+      "name": "Confirmar via WhatsApp2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [784, 432]
+    }
+  ],
+  "connections": {
+    "Webhook Lead Entrada": {
+      "main": [
+        [
+          {
+            "node": "Adicionar allowedInstance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adicionar allowedInstance": {
+      "main": [
+        [
+          {
+            "node": "Parsear Mensagem de Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Mensagem de Lead": {
+      "main": [
+        [
+          {
+            "node": "É um Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É um Lead?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cards Existentes (Trello)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cards Existentes (Trello)": {
+      "main": [
+        [
+          {
+            "node": "Verificar Duplicata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Duplicata": {
+      "main": [
+        [
+          {
+            "node": "É Novo Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Novo Lead?": {
+      "main": [
+        [
+          {
+            "node": "Criar Card no Trello (Leads)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Card no Trello (Leads)": {
+      "main": [
+        [
+          {
+            "node": "Resposta 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trello Trigger": {
+      "main": [
+        [
+          {
+            "node": "É movimento de lista?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É movimento de lista?": {
+      "main": [
+        [
+          {
+            "node": "Quem é o Corretor?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quem é o Corretor?": {
+      "main": [
+        [
+          {
+            "node": "Zap para Ágabo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zap para Brisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zap para Ágabo": {
+      "main": [
+        [
+          {
+            "node": "Confirmar via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zap para Brisa": {
+      "main": [
+        [
+          {
+            "node": "Confirmar via WhatsApp2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99c5d246d7d74335a3fe0c3be82c14af421cc737737fda1411b46d7fb5c79882"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

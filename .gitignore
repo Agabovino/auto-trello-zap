@@ -3,6 +3,10 @@
 *.json
 !workflow_1.json
 !workflow_2.json
+!workflow-whatsapp-lead-auto.json
+!🔐 Meta Webhook Verification (GET).json
+!workflow-setup-trello-credential.json
+!workflow-import-historical-contacts.json
 cloudflared-config.yml
 node_modules/
 docker-compose.override.yml

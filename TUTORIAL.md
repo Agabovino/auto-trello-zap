@@ -393,15 +393,17 @@ A Evolution API suporta múltiplos números conectados (ex: `meu-numero`, `atend
    docker compose up -d n8n
    ```
 
-### 🔄 Importação Retroativa de Contatos Antigos
-Como os webhooks de mensagens só disparam para **novas conversas recebidas**, as conversas históricas que você já possui na Evolution API (ex: 3.000 contatos) não viram cards automaticamente. Para puxar todo esse histórico de uma vez:
+### 🔄 Importação Retroativa de Contatos Antigos (Últimos 2 meses)
+Como os webhooks de mensagens só disparam para **novas conversas recebidas**, as conversas históricas que você já possui na Evolution API não viram cards automaticamente. Para puxar esse histórico de forma segura:
 
 1. Importe o arquivo `workflow-import-historical-contacts.json` no n8n.
-2. Certifique-se de que a credencial Trello do workflow está selecionada.
-3. Clique em **"Listen for test event"** ou execute o trigger **Iniciar Importação Manual**.
-4. O n8n vai:
-   * Chamar a API da Evolution para obter toda a lista de contatos da instância definida no seu `.env` (`EVOLUTION_INSTANCE`).
-   * Puxar a lista de cards existentes no Trello.
-   * Filtrar e remover grupos e números que já possuem card no Trello.
-   * Criar um card no topo da lista **Leads** para cada contato novo de forma 100% automatizada.
+2. Certifique-se de que a credencial Trello do workflow está configurada e selecionada no nó de Trello.
+3. Clique em **"Execute Workflow"** (no editor do n8n) para rodar o trigger **Iniciar Importação Manual**.
+4. O n8n executará o seguinte processo:
+   * **Leitura da API do Trello e Evolution:** Busca todos os cards existentes do Trello e a lista completa de contatos e chats da Evolution API (executando cada chamada HTTP apenas 1 vez para evitar sobrecarga).
+   * **Filtro de Data (Últimos 2 meses):** Filtra e retém apenas os contatos que tiveram interações nos últimos 2 meses (baseado na data da última mensagem/atualização do chat). Isso reduz a carga (ex: de ~3.000 contatos totais para cerca de 500 ativos).
+   * **Ordenação Cronológica:** Organiza a lista do contato mais antigo para o mais recente. Como o Trello insere novos cards no topo (pos: top), isso garante que os contatos mais antigos fiquem no final/baixo da lista e os novos fiquem no topo.
+   * **Controle de Rate Limit (Loop de 80 em 80):** O n8n dividirá a importação em lotes de 80 cards e aguardará 10 segundos entre cada lote, respeitando o limite rígido de requisições por token do Trello (100 reqs/10s).
+   * **Mapeamento Robusto e Retry:** O nó do Trello está configurado para tentar novamente (até 5 vezes com intervalo de 5 segundos) em caso de instabilidades na rede (`ETIMEDOUT`) e lê o título diretamente da memória absoluta do loop (`{{ $('Split in Batches').item.json.cardTitle }}`), evitando a criação de cards vazios.
+
 

@@ -2,12 +2,18 @@
   "name": "🔄 Importar Contatos Históricos do WhatsApp → Trello",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-sync-trello",
+        "responseMode": "onReceived",
+        "options": {}
+      },
       "id": "node-manual-trigger",
-      "name": "Iniciar Importação Manual",
-      "type": "n8n-nodes-base.manualTrigger",
+      "name": "Webhook Sync Trello",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-700, 300]
+      "position": [-700, 300],
+      "webhookId": "dashboard-sync-trello"
     },
     {
       "parameters": {
@@ -163,7 +169,7 @@
     }
   ],
   "connections": {
-    "Iniciar Importação Manual": {
+    "Webhook Sync Trello": {
       "main": [
         [
           {

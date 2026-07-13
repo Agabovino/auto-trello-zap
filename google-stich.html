@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Viver Católico</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (Provided) -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffd9de",
+                    "secondary-fixed-dim": "#adc7ff",
+                    "inverse-primary": "#6ddd81",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f8f9fa",
+                    "on-tertiary-container": "#5f0024",
+                    "on-secondary-container": "#fefcff",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#871a3d",
+                    "on-primary": "#ffffff",
+                    "on-surface": "#191c1d",
+                    "outline-variant": "#bdcaba",
+                    "on-secondary-fixed-variant": "#004493",
+                    "on-background": "#191c1d",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-container-high": "#e7e8e9",
+                    "on-surface-variant": "#3e4a3e",
+                    "surface-dim": "#d9dadb",
+                    "secondary": "#0058bb",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-tertiary-fixed": "#3f0016",
+                    "error": "#ba1a1a",
+                    "primary-fixed": "#89fa9b",
+                    "on-secondary-fixed": "#001a41",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb1c0",
+                    "outline": "#6e7a6d",
+                    "surface": "#f8f9fa",
+                    "background": "#f8f9fa",
+                    "primary-fixed-dim": "#6ddd81",
+                    "primary-container": "#34a853",
+                    "surface-variant": "#e1e3e4",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#005320",
+                    "on-primary-fixed": "#002108",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#f0f1f2",
+                    "inverse-surface": "#2e3132",
+                    "secondary-fixed": "#d8e2ff",
+                    "primary": "#006e2c",
+                    "secondary-container": "#1471e6",
+                    "on-primary-container": "#003511",
+                    "tertiary-container": "#eb6888",
+                    "surface-container": "#edeeef",
+                    "tertiary": "#a73454",
+                    "surface-tint": "#006e2c",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-padding": "24px",
+                    "card-gap": "24px",
+                    "gutter": "16px",
+                    "section-margin": "40px",
+                    "unit": "4px"
+            },
+            "fontFamily": {
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ],
+                    "label-md": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "title-lg": [
+                            "Inter"
+                    ],
+                    "display-lg-mobile": [
+                            "Inter"
+                    ],
+                    "display-lg": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-md": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "title-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "display-lg-mobile": [
+                            "28px",
+                            {
+                                    "lineHeight": "34px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "36px",
+                            {
+                                    "lineHeight": "44px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+        }
+
+        /* Material Symbols Outlined Custom Class */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .material-symbols-outlined.filled {
+             font-variation-settings: 'FILL' 1;
+        }
+
+        /* Ambient Shadows */
+        .shadow-level-1 {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden">
+<!-- SideNavBar (Shared Component) -->
+<nav class="hidden md:flex bg-surface-container-low dark:bg-surface-container-lowest text-secondary dark:text-secondary-fixed-dim border-r border-outline-variant flex-col h-full w-64 flex-shrink-0">
+<!-- Header -->
+<div class="p-gutter border-b border-outline-variant/30 flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant bg-surface-container-highest flex items-center justify-center flex-shrink-0">
+<img alt="Viver Católico Logo" class="w-full h-full object-cover" data-alt="A minimalist, professional corporate logo for Viver Católico. It features a stylized, modern cross integrated with an abstract home or shield shape. The color palette is composed of crisp, clean whites, deep forest greens, and sharp navy blues, set against a pristine, light-mode background. The overall aesthetic is trustworthy, highly legible, and suited for a premium tech dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfMoTHvbf_62pVTNc8tyB9Ndsf9VlJGhI2Qi8rFuyr3t7GyMSiLuKOjY7eGKxSyR4LN5b024Plj9-D5V4D_-jmzdhVPeZBGlqCNXkKGtXZS_npBV5QZWxGYbkrxSYS663_C9eCOR6gExQ3ljueJUw0gpIDveEpS88yBBlGHSdKPsYqyy-81RcSRC5HqQl51UIXEZ1EeeGo25KqLXTQcXvOk6wNU1AUzPEAUd6NrUhAiHnxTPkEZnXa"/>
+</div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg font-black text-on-surface">Viver Católico</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Lead Monitor v2.0</span>
+</div>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 py-4 overflow-y-auto px-4 space-y-2">
+<!-- Active Item: Overview -->
+<a class="flex items-center space-x-3 p-3 rounded-lg bg-secondary-container text-on-secondary-container dark:bg-secondary dark:text-on-secondary font-bold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<!-- Inactive Items -->
+<a class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-dim transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">sync_alt</span>
+<span class="font-label-md text-label-md">Lead Flow</span>
+</a>
+<a class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-dim transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Brokers</span>
+</a>
+<a class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-dim transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dns</span>
+<span class="font-label-md text-label-md">Infrastructure</span>
+</a>
+</div>
+<!-- CTA Button -->
+<div class="p-4 border-t border-outline-variant/30">
+<button class="w-full flex items-center justify-center space-x-2 bg-secondary text-on-secondary px-4 py-2 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-colors font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>New Report</span>
+</button>
+</div>
+<!-- Footer Navigation -->
+<div class="p-4 border-t border-outline-variant/30 space-y-2">
+<a class="flex items-center space-x-3 p-2 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-dim transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center space-x-3 p-2 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-dim transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden">
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flex justify-between items-center px-container-padding py-4 w-full flex-shrink-0 z-10">
+<div class="flex items-center space-x-4">
+<!-- Mobile Menu Toggle (hidden on desktop) -->
+<button class="md:hidden text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest p-2 rounded-full transition-colors active:scale-95 duration-100">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-inverse-primary hidden md:block">
+                     Dashboard Viver Católico
+                 </h1>
+</div>
+<!-- Mobile Active Navigation Indicator (Overview is active) -->
+<nav class="md:hidden flex space-x-4 ml-4 flex-1 overflow-x-auto">
+<a class="font-label-md text-label-md text-secondary dark:text-secondary-fixed border-b-2 border-secondary pb-1 whitespace-nowrap active:scale-95 duration-100" href="#">Overview</a>
+<a class="font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors pb-1 whitespace-nowrap" href="#">Lead Flow</a>
+<a class="font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors pb-1 whitespace-nowrap" href="#">Brokers</a>
+</nav>
+<div class="flex items-center space-x-4 ml-auto">
+<span class="font-body-sm text-body-sm text-on-surface-variant hidden lg:block">
+                    Última atualização do sistema: 14/10/2023 - 10:45
+                </span>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest p-2 rounded-full transition-colors active:scale-95 duration-100" title="refresh">
+<span class="material-symbols-outlined" data-icon="refresh">refresh</span>
+</button>
+<button class="hidden sm:flex items-center space-x-2 font-label-md text-label-md text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest px-3 py-1.5 rounded-full transition-colors active:scale-95 duration-100 border border-outline-variant">
+<span>Sync Trello</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 overflow-y-auto p-container-padding">
+<div class="max-w-7xl mx-auto space-y-section-margin">
+<!-- Infrastructure Status -->
+<section>
+<div class="flex flex-wrap gap-4 items-center">
+<div class="flex items-center space-x-2 bg-surface-container-lowest border border-outline-variant px-3 py-1.5 rounded-full shadow-level-1">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-md text-label-md text-on-surface">Servidor Principal</span>
+</div>
+<div class="flex items-center space-x-2 bg-surface-container-lowest border border-outline-variant px-3 py-1.5 rounded-full shadow-level-1">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-md text-label-md text-on-surface">Worker WhatsApp</span>
+</div>
+<div class="flex items-center space-x-2 bg-surface-container-lowest border border-outline-variant px-3 py-1.5 rounded-full shadow-level-1">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-md text-label-md text-on-surface">Trello API</span>
+</div>
+</div>
+</section>
+<!-- Action Area & Header -->
+<section class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Desempenho dos Corretores</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Visão geral do fluxo de leads distribuídos nas últimas 24 horas.</p>
+</div>
+<button class="flex items-center space-x-2 bg-secondary text-on-secondary px-[20px] py-[10px] rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-colors shadow-level-1 flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+<span class="font-label-md text-label-md">Atualizar Lista no Trello Manualmente</span>
+</button>
+</section>
+<!-- Broker Grid (Bento/Card Style) -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-card-gap">
+<!-- Broker Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-level-1 border border-surface-container-highest flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-20 h-20 rounded-full overflow-hidden mb-4 border-2 border-surface-container-low shadow-sm">
+<img alt="Ricardo Silva Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a mature, confident real estate broker with dark hair and a warm smile, wearing a tailored navy blue blazer over a crisp white shirt. The background is slightly blurred, showing a modern, well-lit office interior with subtle hints of glass and steel. The lighting is bright, natural, and flattering, fitting a premium corporate dashboard aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLEn9ZFCzLCER1rrAI_0c6ZXctCECbJVhZdtsdCA9ooQyhzOUeaLg8soHYipHyYUnlGq1Mi2IiGP4qdanI8VhfHDZmyufqYxhs7Bx44ybH7ou0l2ocbUBNKcB12z-vlJxeIBah3RdFveQ4nGKS8e8g_550PdgyHKbu0NrqUMjlNFK2oJJgXj7oj0C-BDhzDPCD72f5rgFhBqKY4kjgV4R6mLVdMdkLzscaewOv3cctnQnjwadQoNq4"/>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Ricardo Silva</h3>
+<p class="font-label-md text-label-md text-on-surface-variant mb-6 uppercase tracking-wider">Corretor Sênior</p>
+<div class="bg-surface-container-low rounded-lg p-4 w-full border border-surface-container-highest">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Total de Leads Recebidos</p>
+<p class="font-display-lg text-display-lg text-secondary font-bold">42</p>
+</div>
+<div class="mt-4 flex w-full justify-between items-center text-on-surface-variant">
+<div class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-[16px] text-primary-container">check_circle</span>
+<span class="font-body-sm text-body-sm">Ativo</span>
+</div>
+<span class="font-body-sm text-body-sm">Último lead: 10 min</span>
+</div>
+</div>
+<!-- Broker Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-level-1 border border-surface-container-highest flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-20 h-20 rounded-full overflow-hidden mb-4 border-2 border-surface-container-low shadow-sm">
+<img alt="Ana Souza Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of an approachable female real estate broker with blonde shoulder-length hair, smiling gently. She is wearing a light gray business casual top. The background is a bright, modern corporate environment with soft, out-of-focus architectural details. The lighting is high-key, creating a clean, trustworthy look suitable for a digital dashboard profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKFAOIYiTXMLnL_kb-76AmpEFR-m87bMYrm1eSzxkuTaaHizHXqfL0zrFf9yimYkztnUhLl_qdjPNCec3EIIkz7FnW0jJsyWMmbYRLRlYa81X2JXD5sCmR4CLYyU1rx-Sm9wCLGQCdGLF_lsvODH-t7VP7uPvs9ivYmojr8-3vEQ0Q0N7jwoETeZQyjWAaOTKnGvGw_6tGCSMghnPZOdigsc3XEYFgFzxW8eHUZXJ1a7qiXHlSjQ6P"/>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Ana Souza</h3>
+<p class="font-label-md text-label-md text-on-surface-variant mb-6 uppercase tracking-wider">Corretora Pleno</p>
+<div class="bg-surface-container-low rounded-lg p-4 w-full border border-surface-container-highest">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Total de Leads Recebidos</p>
+<p class="font-display-lg text-display-lg text-secondary font-bold">38</p>
+</div>
+<div class="mt-4 flex w-full justify-between items-center text-on-surface-variant">
+<div class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-[16px] text-primary-container">check_circle</span>
+<span class="font-body-sm text-body-sm">Ativo</span>
+</div>
+<span class="font-body-sm text-body-sm">Último lead: 25 min</span>
+</div>
+</div>
+<!-- Broker Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-level-1 border border-surface-container-highest flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-20 h-20 rounded-full overflow-hidden mb-4 border-2 border-surface-container-low shadow-sm bg-surface-container flex items-center justify-center">
+<span class="font-title-lg text-title-lg text-on-surface-variant">CO</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Carlos Oliveira</h3>
+<p class="font-label-md text-label-md text-on-surface-variant mb-6 uppercase tracking-wider">Corretor Júnior</p>
+<div class="bg-surface-container-low rounded-lg p-4 w-full border border-surface-container-highest">
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Total de Leads Recebidos</p>
+<p class="font-display-lg text-display-lg text-secondary font-bold">15</p>
+</div>
+<div class="mt-4 flex w-full justify-between items-center text-on-surface-variant">
+<div class="flex items-center space-x-1">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="font-body-sm text-body-sm text-outline">Pausa</span>
+</div>
+<span class="font-body-sm text-body-sm">Último lead: 2h</span>
+</div>
+</div>
+</section>
+<!-- Bottom padding for scroll -->
+<div class="h-12"></div>
+</div>
+</div>
+</main>
+</body></html>

@@ -109,6 +109,34 @@ services:
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN_EVOLUTION}
 
+  # ── Dashboard de Monitoramento ───────────────────────────────────
+  dashboard:
+    image: nginx:alpine
+    restart: always
+    networks:
+      - n8n_network
+    ports:
+      - "8082:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  tunnel-dashboard:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    networks:
+      - n8n_network
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN_DASHBOARD}
+    depends_on:
+      dashboard:
+        condition: service_healthy
+
 networks:
   n8n_network:
     driver: bridge

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Dashboard — Atendimoveis · Lead Monitor</title>
+  <meta name="description" content="Dashboard de monitoramento da integração Trello ↔ WhatsApp para distribuição de leads dos corretores Atendimoveis."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#CC323A",
+            "on-primary": "#ffffff",
+            "primary-container": "#f5d6d8",
+            "on-primary-container": "#8C1C22",
+            "secondary": "#201F1F",
+            "on-secondary": "#ffffff",
+            "secondary-container": "#f5d6d8",
+            "on-secondary-container": "#CC323A",
+            "background": "#F0EFEE",
+            "on-background": "#201F1F",
+            "surface": "#F0EFEE",
+            "on-surface": "#201F1F",
+            "surface-variant": "#e2e0df",
+            "on-surface-variant": "#4a4a4a",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#faf9f8",
+            "surface-container": "#F0EFEE",
+            "surface-container-high": "#e2e0df",
+            "surface-container-highest": "#d5d3d2",
+            "outline": "#8a8a8a",
+            "outline-variant": "#d5d3d2",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "status-online": "#34a853",
+            "status-offline": "#ba1a1a",
+            "status-warn": "#f59e0b"
+          },
+          borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem","2xl":"1rem",full:"9999px"},
+          spacing:{"container-padding":"24px","card-gap":"24px","gutter":"16px","section-margin":"40px","unit":"4px"},
+          fontFamily:{sans:["Inter","sans-serif"]},
+          fontSize:{
+            "body-md":["16px",{lineHeight:"24px",fontWeight:"400"}],
+            "body-sm":["14px",{lineHeight:"20px",fontWeight:"400"}],
+            "label-md":["12px",{lineHeight:"16px",letterSpacing:"0.05em",fontWeight:"500"}],
+            "headline-md":["24px",{lineHeight:"32px",letterSpacing:"-0.01em",fontWeight:"600"}],
+            "title-lg":["18px",{lineHeight:"28px",fontWeight:"500"}],
+            "display-lg-mobile":["28px",{lineHeight:"34px",letterSpacing:"-0.01em",fontWeight:"600"}],
+            "display-lg":["36px",{lineHeight:"44px",letterSpacing:"-0.02em",fontWeight:"600"}]
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body{font-family:'Inter',sans-serif;background-color:#F0EFEE;}
+    .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+    .material-symbols-outlined.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+    .shadow-level-1{box-shadow:0 2px 4px rgba(0,0,0,.05);}
+    .shadow-level-2{box-shadow:0 4px 12px rgba(0,0,0,.08);}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.4)}}
+    .pulse-dot{animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spin{animation:spin .8s linear infinite;}
+    @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+    .skeleton{background:linear-gradient(90deg,#e8e9ea 25%,#f3f4f5 50%,#e8e9ea 75%);background-size:400px 100%;animation:shimmer 1.4s ease infinite;border-radius:6px;}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeInUp .35s ease forwards;}
+    .card-accent{position:relative;overflow:hidden;}
+    .card-accent::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,#CC323A,#201F1F);opacity:0;transition:opacity .25s ease;}
+    .card-accent:hover::before{opacity:1;}
+    ::-webkit-scrollbar{width:6px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:#bdcaba;border-radius:9999px;}
+    #toast{transition:opacity .3s ease,transform .3s ease;}
+    #toast.hidden-toast{opacity:0;transform:translateY(20px);pointer-events:none;}
+    .progress-bar{height:6px;border-radius:9999px;background:#e1e3e4;overflow:hidden;}
+    .progress-fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,#CC323A,#201F1F);transition:width .6s ease;}
+
+    /* QR Code */
+    @keyframes scan{0%{top:0%}100%{top:calc(100% - 3px)}}
+    .scan-line{position:absolute;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,#25d366,transparent);animation:scan 1.6s linear infinite;pointer-events:none;}
+    @keyframes qr-border-pulse{0%,100%{border-color:rgba(37,211,102,.4)}50%{border-color:rgba(37,211,102,.9)}}
+    .qr-waiting-border{animation:qr-border-pulse 2s ease-in-out infinite;}
+    .instance-card{transition:transform .25s ease,box-shadow .25s ease;}
+    .instance-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1);}
+
+    /* Status badges */
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.04em;}
+    .badge-online{background:#d4f5de;color:#006e2c;}
+    .badge-offline{background:#fde8e8;color:#ba1a1a;}
+    .badge-connecting{background:#fff8e1;color:#92400e;}
+
+    /* Trello button */
+    .trello-btn{background:#0052cc;color:#fff;transition:all .2s ease;cursor:pointer;}
+    .trello-btn:hover{background:#0041a3;transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,82,204,.35);}
+    .trello-btn:active{transform:scale(.97);}
+  </style>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden font-medium tracking-wide">
+
+<!-- SIDEBAR -->
+<nav id="sidebar" class="hidden md:flex bg-surface-container-low text-secondary border-r border-outline-variant flex-col h-full w-64 flex-shrink-0">
+  <div class="flex flex-col p-gutter border-b border-outline-variant/30 flex items-center space-x-3">
+    <div class="h-10 flex items-center justify-center flex-shrink-0">
+      <img src="2.png" alt="Atendimoveis" class="h-10 object-contain"/>
+    </div>
+  </div>
+  <div class="flex-1 py-4 overflow-y-auto px-3 space-y-1">
+    <a id="nav-overview" href="#" onclick="showSection('overview',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg bg-secondary-container text-on-secondary-container font-bold transition-all duration-200">
+      <span class="material-symbols-outlined">dashboard</span><span class="text-label-md">Overview</span>
+    </a>
+    <a id="nav-connections" href="#" onclick="showSection('connections',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 relative">
+      <span class="material-symbols-outlined">wifi_tethering</span><span class="text-label-md">Conexões</span>
+      <span id="sidebar-conn-badge" class="hidden ml-auto text-[10px] font-bold bg-status-offline text-white px-1.5 py-0.5 rounded-full">!</span>
+    </a>
+    <a id="nav-brokers" href="#" onclick="showSection('brokers',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined">group</span><span class="text-label-md">Corretores</span>
+    </a>
+    <a id="nav-infra" href="#" onclick="showSection('infra',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined">dns</span><span class="text-label-md">Infraestrutura</span>
+    </a>
+    <a id="nav-logs" href="#" onclick="showSection('logs',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined">receipt_long</span><span class="text-label-md">Logs de Atividade</span>
+    </a>
+  </div>
+  <div class="p-4 border-t border-outline-variant/30">
+    <button id="sidebar-sync-btn" onclick="triggerTrelloSync()" class="w-full flex items-center justify-center space-x-2 bg-secondary text-on-secondary px-4 py-2 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-colors text-label-md font-medium active:scale-95 duration-100">
+      <span class="material-symbols-outlined text-[18px]" id="sidebar-sync-icon">sync</span>
+      <span id="sidebar-sync-label">Atualizar no Trello</span>
+    </button>
+  </div>
+  <div class="p-4 border-t border-outline-variant/30 space-y-1">
+    <a href="https://n8n.vivercatolico.com.br" target="_blank" rel="noopener" class="flex items-center space-x-3 p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined text-[20px]">open_in_new</span><span class="text-label-md">Abrir n8n</span>
+    </a>
+    <a href="https://evolution.vivercatolico.com.br/manager/" target="_blank" rel="noopener" class="flex items-center space-x-3 p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined text-[20px]">chat</span><span class="text-label-md">Evolution Manager</span>
+    </a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="flex-1 flex flex-col h-full overflow-hidden">
+  <!-- TOP BAR -->
+  <header class="bg-surface border-b border-outline-variant flex justify-between items-center px-container-padding py-4 w-full flex-shrink-0 z-10">
+    <div class="flex items-center space-x-4">
+      <button class="md:hidden text-primary hover:bg-surface-container-low p-2 rounded-full transition-colors" onclick="toggleMobileSidebar()">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <h1 class="font-headline-md text-headline-md font-bold text-primary hidden md:block">Dashboard Atendimoveis</h1>
+    </div>
+    <nav class="md:hidden flex space-x-4 ml-2 flex-1 overflow-x-auto text-label-md">
+      <a href="#" onclick="showSection('overview');return false;" class="text-secondary border-b-2 border-secondary pb-1 whitespace-nowrap">Overview</a>
+      <a href="#" onclick="showSection('connections');return false;" class="text-on-surface-variant pb-1 whitespace-nowrap">Conexões</a>
+      <a href="#" onclick="showSection('brokers');return false;" class="text-on-surface-variant pb-1 whitespace-nowrap">Corretores</a>
+      <a href="#" onclick="showSection('logs');return false;" class="text-on-surface-variant pb-1 whitespace-nowrap">Logs</a>
+    </nav>
+    <div class="flex items-center space-x-3 ml-auto">
+      <span id="header-last-update" class="text-body-sm text-on-surface-variant hidden lg:block">Sincronizando...</span>
+      <button onclick="refreshAll()" title="Atualizar dados" class="text-primary hover:bg-surface-container-low p-2 rounded-full transition-colors active:scale-95 duration-100">
+        <span class="material-symbols-outlined" id="refresh-icon">refresh</span>
+      </button>
+      <button onclick="triggerTrelloSync()" class="hidden sm:flex items-center space-x-2 text-label-md text-primary hover:bg-surface-container-low px-3 py-1.5 rounded-full transition-colors active:scale-95 duration-100 border border-outline-variant">
+        <span class="material-symbols-outlined text-[16px]" id="header-sync-icon">sync</span>
+        <span id="header-sync-label">Sync Trello</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CANVAS -->
+  <div class="flex-1 overflow-y-auto p-container-padding">
+    <div class="max-w-7xl mx-auto space-y-section-margin">
+
+      <!-- === OVERVIEW === -->
+      <section id="section-overview" class="space-y-section-margin fade-in">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-card-gap">
+          <div class="bg-surface-container-lowest rounded-xl p-5 shadow-level-1 border border-surface-container-highest card-accent">
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Total de Leads</p>
+            <p id="kpi-total" class="text-display-lg font-bold text-secondary mt-1">—</p>
+            <p class="text-label-md text-on-surface-variant mt-2">no Trello</p>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-5 shadow-level-1 border border-surface-container-highest card-accent">
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Leads Hoje</p>
+            <p id="kpi-today" class="text-display-lg font-bold text-primary mt-1">—</p>
+            <p class="text-label-md text-on-surface-variant mt-2">novos contatos</p>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-5 shadow-level-1 border border-surface-container-highest card-accent">
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Corretores Ativos</p>
+            <p id="kpi-active-brokers" class="text-display-lg font-bold text-primary mt-1">—</p>
+            <p class="text-label-md text-on-surface-variant mt-2">recebendo leads</p>
+          </div>
+          <div class="bg-surface-container-lowest rounded-xl p-5 shadow-level-1 border border-surface-container-highest card-accent">
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Serviços Online</p>
+            <p id="kpi-services" class="text-display-lg font-bold text-status-online mt-1">—</p>
+            <p class="text-label-md text-on-surface-variant mt-2">de 5 ativos</p>
+          </div>
+        </div>
+
+        <!-- Infra status pills -->
+        <div>
+          <h2 class="text-headline-md text-on-surface mb-4">Status da Infraestrutura</h2>
+          <div id="infra-status-row" class="flex flex-wrap gap-3">
+            <div class="skeleton h-9 w-44 rounded-full"></div>
+            <div class="skeleton h-9 w-44 rounded-full"></div>
+            <div class="skeleton h-9 w-44 rounded-full"></div>
+            <div class="skeleton h-9 w-44 rounded-full"></div>
+            <div class="skeleton h-9 w-44 rounded-full"></div>
+          </div>
+        </div>
+
+        <!-- Last sync banner -->
+        <div class="flex items-center justify-between bg-surface-container-lowest border border-outline-variant rounded-xl px-5 py-4 shadow-level-1">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-primary text-[20px]">schedule</span>
+            </div>
+            <div>
+              <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-0.5">Última Sincronização com Trello</p>
+              <p id="last-sync-time" class="text-title-lg text-on-surface font-medium">Carregando...</p>
+            </div>
+          </div>
+          <div class="hidden sm:flex items-center space-x-1.5 bg-green-100 text-status-online px-3 py-1 rounded-full text-label-md font-medium">
+            <span class="w-2 h-2 rounded-full bg-status-online pulse-dot"></span>
+            <span>Automático Ativo</span>
+          </div>
+        </div>
+
+        <!-- Main sync CTA -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-outline-variant/40 pt-section-margin">
+          <div>
+            <h2 class="text-headline-md text-on-surface">Controle de Sincronização</h2>
+            <p class="text-body-sm text-on-surface-variant mt-1">Dispare manualmente a atualização da lista de leads no Trello.</p>
+          </div>
+          <button id="main-sync-btn" onclick="triggerTrelloSync()"
+                  class="flex items-center space-x-2 bg-secondary text-on-secondary px-6 py-3 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-all duration-200 shadow-level-1 flex-shrink-0 active:scale-95 font-medium">
+            <span class="material-symbols-outlined text-[20px]" id="main-sync-icon">sync</span>
+            <span id="main-sync-label">Atualizar Lista no Trello</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- === CONEXÕES === -->
+      <section id="section-connections" class="hidden space-y-10 fade-in">
+        <div>
+          <h2 class="text-headline-md text-on-surface">Conexões</h2>
+          <p class="text-body-sm text-on-surface-variant mt-1">Gerencie WhatsApp e Trello sem editar arquivos de configuração.</p>
+        </div>
+
+        <!-- ── WhatsApp ───────────────────────────────────────────── -->
+        <div class="space-y-5">
+          <!-- Section header -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:#25d366">
+                <svg viewBox="0 0 24 24" fill="white" class="w-5 h-5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.478 2 12.001c0 1.772.463 3.435 1.27 4.883L2 22l5.228-1.253A9.923 9.923 0 0 0 12 22c5.522 0 10-4.478 10-10S17.521 2 12 2zm0 18.18a8.171 8.171 0 0 1-4.434-1.307l-.317-.19-3.105.745.77-3.017-.207-.33A8.174 8.174 0 0 1 3.82 12c0-4.513 3.667-8.18 8.18-8.18 4.513 0 8.18 3.667 8.18 8.18 0 4.513-3.667 8.18-8.18 8.18z"/></svg>
+              </div>
+              <div>
+                <h3 class="text-title-lg font-semibold text-on-surface">WhatsApp — Meta API</h3>
+                <p class="text-label-md text-on-surface-variant">Instâncias conectadas e QR Codes para reconexão</p>
+              </div>
+            </div>
+            <button onclick="refreshEvolutionInstances()" id="evo-refresh-btn"
+                    class="flex items-center space-x-1.5 text-label-md text-secondary hover:bg-surface-container-high px-3 py-1.5 rounded-full border border-outline-variant transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[16px]" id="evo-refresh-icon">refresh</span>
+              <span>Atualizar</span>
+            </button>
+          </div>
+
+          <!-- Instance cards -->
+          <div id="evolution-instances-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-card-gap">
+            <div class="skeleton h-80 rounded-xl"></div>
+            <div class="skeleton h-80 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <hr class="border-outline-variant/50"/>
+
+        <!-- ── Trello OAuth ───────────────────────────────────────── -->
+        <div class="space-y-5">
+          <!-- Section header -->
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:#0052cc">
+              <svg viewBox="0 0 24 24" fill="white" class="w-5 h-5"><path d="M21 4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V4zm-11.5 1.5h3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5zm5.5 0h2.5a.5.5 0 0 1 .5.5v4.5a.5.5 0 0 1-.5.5H15a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5z"/></svg>
+            </div>
+            <div>
+              <h3 class="text-title-lg font-semibold text-on-surface">Trello</h3>
+              <p class="text-label-md text-on-surface-variant">Autorize o acesso para configurar os quadros e colunas de forma totalmente visual.</p>
+            </div>
+          </div>
+
+          <!-- Panel -->
+          <div class="bg-surface-container-lowest rounded-2xl border border-surface-container-highest shadow-level-1 overflow-hidden">
+
+            <!-- Not connected -->
+            <div id="trello-not-connected" class="flex flex-col items-center text-center p-10">
+              <div class="w-24 h-24 rounded-3xl mb-6 flex items-center justify-center shadow-level-2" style="background:linear-gradient(135deg,#0052cc 0%,#1471e6 100%)">
+                <svg viewBox="0 0 24 24" fill="white" class="w-12 h-12"><path d="M21 4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V4zm-11.5 1.5h3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5zm5.5 0h2.5a.5.5 0 0 1 .5.5v4.5a.5.5 0 0 1-.5.5H15a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5z"/></svg>
+              </div>
+              <h4 class="text-title-lg font-bold text-on-surface mb-2">Conectar ao Trello</h4>
+              <p class="text-body-sm text-on-surface-variant max-w-sm mb-8 leading-relaxed">
+                Autorize o dashboard a acessar seu Trello para sincronizar listas e cards de leads — sem editar nenhum arquivo.
+              </p>
+
+              <!-- API Key field -->
+              <div class="w-full max-w-md space-y-4 mb-6 text-left">
+                
+                <!-- Origens Permitidas -->
+                <div>
+                  <label class="block text-label-md text-on-surface-variant uppercase tracking-wider mb-1">
+                    Passo 1: Origem Permitida
+                  </label>
+                  <p class="text-[12px] text-on-surface-variant mb-2">
+                    Cole esta URL no campo "Origens Permitidas" (Allowed Origins) lá no Trello.
+                  </p>
+                  <div class="flex gap-2">
+                    <input id="trello-origin-input" type="text" readonly
+                      class="flex-1 border border-outline-variant rounded-xl px-4 py-3 text-body-sm bg-surface-container font-mono text-on-surface focus:outline-none"/>
+                    <button onclick="copyTrelloOrigin()" title="Copiar URL"
+                            class="flex items-center px-4 bg-secondary text-on-secondary rounded-xl hover:bg-on-secondary-fixed-variant transition active:scale-95">
+                      <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chave da API -->
+                <div>
+                  <label for="trello-api-key-input" class="block text-label-md text-on-surface-variant uppercase tracking-wider mb-1">
+                    Passo 2: API Key do Trello <span class="text-status-offline">*</span>
+                  </label>
+                  <p class="text-[12px] text-on-surface-variant mb-2">
+                    Obtenha em: <a href="https://trello.com/power-ups/admin" target="_blank" class="text-secondary hover:underline">trello.com/power-ups/admin</a> (aba API Key).
+                  </p>
+                  <div class="flex gap-2">
+                    <input id="trello-api-key-input" type="text"
+                      placeholder="Cole aqui sua API Key (ex: a1b2c3d4...)"
+                      class="flex-1 border border-outline-variant rounded-xl px-4 py-3 text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary bg-surface-container-low transition"/>
+                    <a href="https://trello.com/power-ups/admin" target="_blank" rel="noopener" title="Obter API Key"
+                       class="flex items-center px-3 border border-outline-variant rounded-xl text-on-surface-variant hover:bg-surface-container-high transition">
+                      <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                    </a>
+                  </div>
+                </div>
+                
+              </div>
+
+              <button id="trello-authorize-btn" onclick="authorizeTrello()"
+                      class="trello-btn flex items-center space-x-3 px-8 py-4 rounded-xl text-body-sm font-semibold shadow-level-2">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 flex-shrink-0"><path d="M21 4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V4zm-11.5 1.5h3a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5zm5.5 0h2.5a.5.5 0 0 1 .5.5v4.5a.5.5 0 0 1-.5.5H15a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5z"/></svg>
+                <span>Entrar com Trello</span>
+              </button>
+            </div>
+
+            <!-- Connected -->
+            <div id="trello-connected" class="hidden">
+              <!-- Profile header -->
+              <div class="p-8 border-b border-outline-variant/50" style="background:linear-gradient(135deg,rgba(0,82,204,.04) 0%,rgba(20,113,230,.02) 100%)">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-center space-x-4">
+                    <div id="trello-avatar-wrap"
+                         class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-secondary/30 flex-shrink-0 bg-surface-container-high flex items-center justify-center text-title-lg font-bold text-secondary shadow-level-1">
+                    </div>
+                    <div>
+                      <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 id="trello-user-name" class="text-title-lg font-bold text-on-surface">—</h4>
+                        <span class="badge badge-online">
+                          <span class="w-1.5 h-1.5 rounded-full bg-status-online pulse-dot"></span>
+                          Conectado
+                        </span>
+                      </div>
+                      <p id="trello-user-username" class="text-body-sm text-on-surface-variant">@—</p>
+                      <p id="trello-user-email" class="text-label-md text-on-surface-variant mt-1">—</p>
+                    </div>
+                  </div>
+                  <button onclick="disconnectTrello()"
+                          class="flex-shrink-0 flex items-center space-x-1.5 text-label-md text-on-surface-variant hover:text-status-offline hover:bg-red-50 px-3 py-2 rounded-full border border-outline-variant transition-all active:scale-95">
+                    <span class="material-symbols-outlined text-[16px]">logout</span>
+                    <span>Desconectar</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Boards -->
+              <div class="p-8 border-b border-outline-variant/50">
+                <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-4">Boards disponíveis</p>
+                <div id="trello-boards-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div class="skeleton h-14 rounded-xl"></div>
+                  <div class="skeleton h-14 rounded-xl"></div>
+                </div>
+              </div>
+
+              <!-- Credentials for n8n -->
+              <div class="p-8">
+                <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-4">Credenciais para o n8n</p>
+                <div class="space-y-4">
+                  <!-- API Key -->
+                  <div>
+                    <label class="block text-body-sm text-on-surface-variant mb-1">API Key</label>
+                    <div class="flex items-center gap-2">
+                      <code id="trello-apikey-display" class="flex-1 text-body-sm font-mono bg-surface-container-low px-4 py-3 rounded-xl text-on-surface truncate border border-outline-variant">—</code>
+                      <button onclick="copyTrelloApiKey()"
+                              class="flex items-center space-x-1.5 text-label-md text-secondary hover:bg-surface-container-high px-3 py-3 rounded-xl border border-outline-variant transition active:scale-95">
+                        <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                        <span class="hidden sm:inline">Copiar</span>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Token -->
+                  <div>
+                    <label class="block text-body-sm text-on-surface-variant mb-1">Token (OAuth)</label>
+                    <div class="flex items-center gap-2">
+                      <code id="trello-token-display" class="flex-1 text-body-sm font-mono bg-surface-container-low px-4 py-3 rounded-xl text-on-surface truncate border border-outline-variant">—</code>
+                      <button onclick="copyTrelloToken()"
+                              class="flex items-center space-x-1.5 text-label-md text-secondary hover:bg-surface-container-high px-3 py-3 rounded-xl border border-outline-variant transition active:scale-95">
+                        <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                        <span class="hidden sm:inline">Copiar</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-label-md text-on-surface-variant mt-4">
+                  Cole esses valores nos campos <strong>API Key</strong> e <strong>Token</strong> das credenciais Trello (Trello API) no n8n.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- === BROKERS === -->
+
+      <section id="section-brokers" class="hidden space-y-6 fade-in">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 class="text-headline-md text-on-surface">Desempenho dos Corretores</h2>
+            <p class="text-body-sm text-on-surface-variant mt-1">Distribuição total de leads por corretor.</p>
+          </div>
+          <button onclick="triggerTrelloSync()" class="flex items-center space-x-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-all shadow-level-1 text-label-md active:scale-95 duration-100">
+            <span class="material-symbols-outlined text-[18px]">sync</span><span>Atualizar no Trello</span>
+          </button>
+        </div>
+        <div id="broker-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-card-gap">
+          <div class="skeleton h-64 rounded-xl"></div>
+          <div class="skeleton h-64 rounded-xl"></div>
+          <div class="skeleton h-64 rounded-xl"></div>
+        </div>
+      </section>
+
+      <!-- === INFRA === -->
+      <section id="section-infra" class="hidden space-y-6 fade-in">
+        <h2 class="text-headline-md text-on-surface">Infraestrutura Docker</h2>
+        <div class="bg-surface-container-lowest rounded-xl border border-surface-container-highest shadow-level-1 overflow-hidden">
+          <table class="w-full text-left">
+            <thead class="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th class="px-6 py-3 text-label-md text-on-surface-variant uppercase tracking-wider">Serviço</th>
+                <th class="px-6 py-3 text-label-md text-on-surface-variant uppercase tracking-wider">Imagem</th>
+                <th class="px-6 py-3 text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-label-md text-on-surface-variant uppercase tracking-wider hidden md:table-cell">Porta</th>
+                <th class="px-6 py-3 text-label-md text-on-surface-variant uppercase tracking-wider hidden lg:table-cell">URL</th>
+              </tr>
+            </thead>
+            <tbody id="infra-table-body" class="divide-y divide-outline-variant/50">
+              <tr><td colspan="5" class="px-6 py-8 text-center text-on-surface-variant text-body-sm">Carregando serviços...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- === LOGS === -->
+      <section id="section-logs" class="hidden space-y-6 fade-in">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div>
+            <h2 class="text-headline-md text-on-surface">Logs de Atividade</h2>
+            <p class="text-body-sm text-on-surface-variant mt-1">Eventos recentes do sistema.</p>
+          </div>
+          <button onclick="clearLogs()" class="flex items-center space-x-2 px-4 py-2 rounded-DEFAULT border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition text-label-md active:scale-95 duration-100">
+            <span class="material-symbols-outlined text-[16px]">delete_sweep</span><span>Limpar</span>
+          </button>
+        </div>
+        <div id="log-feed" class="bg-surface-container-lowest rounded-xl border border-surface-container-highest shadow-level-1 divide-y divide-outline-variant/40 max-h-[60vh] overflow-y-auto">
+          <p class="px-6 py-8 text-center text-on-surface-variant text-body-sm">Nenhum log registrado ainda.</p>
+        </div>
+      </section>
+
+      <div class="h-12"></div>
+    </div>
+  </div>
+</main>
+
+<!-- TOAST -->
+<div id="toast" class="hidden-toast fixed bottom-6 right-6 z-50 flex items-center space-x-3 bg-inverse-surface text-inverse-on-surface px-5 py-3.5 rounded-xl shadow-level-2 max-w-sm">
+  <span class="material-symbols-outlined" id="toast-icon">info</span>
+  <p class="text-body-sm" id="toast-message">Mensagem</p>
+</div>
+
+<!-- MOBILE OVERLAY + SIDEBAR -->
+<div id="mobile-overlay" class="hidden fixed inset-0 bg-black/30 z-30 md:hidden" onclick="toggleMobileSidebar()"></div>
+<div id="mobile-sidebar" class="hidden fixed left-0 top-0 h-full w-64 bg-surface-container-low border-r border-outline-variant z-40 flex-col md:hidden">
+  <div class="p-gutter border-b border-outline-variant/30 flex items-center justify-between">
+    <span class="text-title-lg font-black text-on-surface">Menu</span>
+    <button onclick="toggleMobileSidebar()" class="p-2 rounded-full hover:bg-surface-container-high"><span class="material-symbols-outlined">close</span></button>
+  </div>
+  <div class="flex-1 py-4 px-3 space-y-1">
+    <a href="#" onclick="showSection('overview');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">dashboard</span><span class="text-label-md">Overview</span>
+    </a>
+    <a href="#" onclick="showSection('connections');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">wifi_tethering</span><span class="text-label-md">Conexões</span>
+    </a>
+    <a href="#" onclick="showSection('brokers');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">group</span><span class="text-label-md">Corretores</span>
+    </a>
+    <a href="#" onclick="showSection('infra');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">dns</span><span class="text-label-md">Infraestrutura</span>
+    </a>
+    <a href="#" onclick="showSection('logs');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">receipt_long</span><span class="text-label-md">Logs</span>
+    </a>
+  </div>
+  <div class="p-4 border-t border-outline-variant/30">
+    <button onclick="triggerTrelloSync();toggleMobileSidebar();" class="w-full flex items-center justify-center space-x-2 bg-secondary text-on-secondary px-4 py-2 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-colors text-label-md">
+      <span class="material-symbols-outlined text-[18px]">sync</span><span>Atualizar no Trello</span>
+    </button>
+  </div>
+</div>
+
+<script src="app.js?v=2.3"></script>
+</body>
+</html>

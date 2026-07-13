@@ -12,7 +12,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "url": "=https://api.trello.com/1/lists/{{ $env.TRELLO_LIST_ID }}/cards",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "trelloApi",
         "options": {}
@@ -128,7 +128,7 @@
     },
     {
       "parameters": {
-        "listId": "6a1494722dc95789afdde75c",
+        "listId": "={{ $env.TRELLO_LIST_ID }}",
         "name": "={{ $('Split in Batches').item.json.cardTitle }}",
         "description": "={{ $('Split in Batches').item.json.cardDescription }}",
         "additionalFields": {

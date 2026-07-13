@@ -64,7 +64,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "url": "=https://api.trello.com/1/lists/{{ $env.TRELLO_LIST_ID }}/cards",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "trelloApi",
         "options": {}
@@ -110,7 +110,7 @@
     },
     {
       "parameters": {
-        "listId": "6a1494722dc95789afdde75c",
+        "listId": "={{ $env.TRELLO_LIST_ID }}",
         "name": "={{ $json.cardTitle }}",
         "description": "={{ $json.cardDescription }}",
         "additionalFields": {
@@ -145,7 +145,7 @@
     },
     {
       "parameters": {
-        "id": "6a1494722dc95789afdde69b"
+        "id": "={{ $env.TRELLO_BOARD_ID }}"
       },
       "id": "670a606a-5225-4f5e-8d67-1bc9a269ff65",
       "name": "Trello Trigger",

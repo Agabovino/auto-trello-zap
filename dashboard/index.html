@@ -122,6 +122,9 @@
     <a id="nav-brokers" href="#" onclick="showSection('brokers',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
       <span class="material-symbols-outlined">group</span><span class="text-label-md">Corretores</span>
     </a>
+    <a id="nav-leads" href="#" onclick="showSection('leads',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
+      <span class="material-symbols-outlined">view_list</span><span class="text-label-md">Histórico de Leads</span>
+    </a>
     <a id="nav-infra" href="#" onclick="showSection('infra',this);return false;" class="flex items-center space-x-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200">
       <span class="material-symbols-outlined">dns</span><span class="text-label-md">Infraestrutura</span>
     </a>
@@ -454,6 +457,29 @@
         </div>
       </section>
 
+      <!-- === HISTÓRICO DE LEADS === -->
+      <section id="section-leads" class="hidden space-y-6 fade-in">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <h2 class="text-headline-md text-on-surface">Histórico de Leads (Trello)</h2>
+          <button onclick="fetchLeadsHistory()"
+                  class="flex items-center justify-center space-x-1.5 bg-surface-container-high hover:bg-outline-variant/30 text-on-surface px-4 py-2 rounded-xl text-label-md transition active:scale-95">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>
+            <span>Atualizar</span>
+          </button>
+        </div>
+        <p class="text-body-sm text-on-surface-variant max-w-3xl">
+          Mostra os leads capturados mais recentemente através do Trello. O painel puxa os cards diretamente da API do Trello caso a sua conta esteja conectada (buscando as últimas movimentações).
+        </p>
+
+        <div class="bg-surface-container-lowest rounded-xl border border-surface-container-highest shadow-level-1 overflow-hidden">
+          <ul id="leads-history-list" class="divide-y divide-outline-variant/50">
+            <li class="p-8 text-center text-on-surface-variant text-body-sm">
+              Conecte-se ao Trello e clique em atualizar para carregar o histórico.
+            </li>
+          </ul>
+        </div>
+      </section>
+
       <!-- === INFRA === -->
       <section id="section-infra" class="hidden space-y-6 fade-in">
         <h2 class="text-headline-md text-on-surface">Infraestrutura Docker</h2>
@@ -519,6 +545,9 @@
     <a href="#" onclick="showSection('brokers');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
       <span class="material-symbols-outlined">group</span><span class="text-label-md">Corretores</span>
     </a>
+    <a href="#" onclick="showSection('leads');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
+      <span class="material-symbols-outlined">view_list</span><span class="text-label-md">Histórico de Leads</span>
+    </a>
     <a href="#" onclick="showSection('infra');toggleMobileSidebar();return false;" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-all">
       <span class="material-symbols-outlined">dns</span><span class="text-label-md">Infraestrutura</span>
     </a>
@@ -533,6 +562,6 @@
   </div>
 </div>
 
-<script src="app.js?v=2.3"></script>
+<script src="app.js?v=2.8"></script>
 </body>
 </html>

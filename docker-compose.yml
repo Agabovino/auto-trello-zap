@@ -20,10 +20,13 @@ services:
       # Trello credentials (opcionais - se definidos, serão usados nos workflows)
       - TRELLO_API_KEY=${TRELLO_API_KEY:-}
       - TRELLO_TOKEN=${TRELLO_TOKEN:-}
+      - TRELLO_BOARD_ID=${TRELLO_BOARD_ID:-}
+      - TRELLO_LIST_ID=${TRELLO_LIST_ID:-}
       # Evolution API - instância fonte dos leads
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-meu-numero}
-      # Permitir leitura de variáveis de ambiente no n8n
+      # Permitir leitura de variáveis de ambiente no n8n (Code Node e Expressões)
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_ENV_VARS_ALLOW_ACCESS=EVOLUTION_INSTANCE,TRELLO_LIST_ID,TRELLO_BOARD_ID,N8N_API_KEY
     volumes:
       - n8n_data:/home/node/.n8n
 

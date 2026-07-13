@@ -100,7 +100,7 @@ function showToast(msg, icon = 'info') {
 // NAVIGATION
 // ─────────────────────────────────────────────
 function showSection(name, clickedEl) {
-  const sections = ['overview', 'connections', 'brokers', 'infra', 'logs'];
+  const sections = ['overview', 'connections', 'brokers', 'leads', 'infra', 'logs'];
   sections.forEach(s => {
     const sec = document.getElementById(`section-${s}`);
     if (sec) {
@@ -124,6 +124,8 @@ function showSection(name, clickedEl) {
   if (name === 'connections') {
     refreshEvolutionInstances();
     checkTrelloLoginReturn();
+  } else if (name === 'leads') {
+    fetchLeadsHistory();
   }
 }
 
@@ -533,13 +535,13 @@ function authorizeTrello() {
 }
 
 /**
- * Carrega o perfil do usuário Trello autenticado e os boards.
+ * Carrega o perfil do usuário Trello autenticado e os boards com suas colunas (lists).
  */
 async function loadTrelloProfile() {
   try {
     const [memberResp, boardsResp] = await Promise.all([
       fetch(`https://api.trello.com/1/members/me?key=${state.trelloApiKey}&token=${state.trelloToken}&fields=fullName,username,email,avatarUrl,avatarHash`),
-      fetch(`https://api.trello.com/1/members/me/boards?key=${state.trelloApiKey}&token=${state.trelloToken}&filter=open&fields=name,url,prefs`),
+      fetch(`https://api.trello.com/1/members/me/boards?key=${state.trelloApiKey}&token=${state.trelloToken}&filter=open&fields=name,url,prefs&lists=open&list_fields=name`),
     ]);
 
     if (!memberResp.ok) throw new Error(`Trello member: HTTP ${memberResp.status}`);
@@ -609,17 +611,88 @@ function renderTrelloConnected() {
     if (state.trelloBoards.length === 0) {
       boardsList.innerHTML = '<p class="text-body-sm text-on-surface-variant col-span-full">Nenhum board encontrado.</p>';
     } else {
-      boardsList.innerHTML = state.trelloBoards.map(b => {
+      boardsList.innerHTML = state.trelloBoards.map((b, idx) => {
         const bg = b.prefs?.backgroundColor || b.prefs?.backgroundTopColor || '#0052cc';
+        const listsHtml = (b.lists || []).map(l => `
+          <div class="flex items-center justify-between py-1.5 border-b border-outline-variant/30 last:border-0">
+            <span class="text-[12px] text-on-surface truncate pr-2 flex-1">${l.name}</span>
+            <div class="flex items-center space-x-2 flex-shrink-0">
+              <code class="text-[10px] bg-surface-container px-2 py-0.5 rounded font-mono text-on-surface-variant">${l.id}</code>
+              <button onclick="copyToClipboard('${l.id}', 'ID da Coluna')" class="text-secondary hover:bg-surface-container-high p-1 rounded transition">
+                <span class="material-symbols-outlined text-[14px]">content_copy</span>
+              </button>
+            </div>
+          </div>
+        `).join('');
+
         return `
-          <a href="${b.url}" target="_blank" rel="noopener"
-             class="flex items-center space-x-3 px-4 py-3 rounded-xl border border-outline-variant hover:bg-surface-container-low transition group">
-            <div class="w-8 h-8 rounded-lg flex-shrink-0" style="background:${bg}"></div>
-            <span class="text-body-sm text-on-surface font-medium group-hover:text-secondary transition truncate">${b.name}</span>
-            <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-auto flex-shrink-0">open_in_new</span>
-          </a>`;
+          <div class="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden flex flex-col group">
+            <button onclick="toggleTrelloBoard(${idx})" class="flex items-center space-x-3 px-4 py-3 w-full text-left hover:bg-surface-container-low transition">
+              <div class="w-8 h-8 rounded-lg flex-shrink-0" style="background:${bg}"></div>
+              <span class="text-body-sm text-on-surface font-medium truncate flex-1">${b.name}</span>
+              <span id="board-icon-${idx}" class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform">expand_more</span>
+            </button>
+            
+            <div id="board-content-${idx}" class="hidden flex-col bg-surface-container-low border-t border-outline-variant/50 p-4 space-y-4">
+              <!-- Board ID -->
+              <div>
+                <span class="block text-[10px] uppercase text-on-surface-variant font-bold mb-1 tracking-wider">ID do Board</span>
+                <div class="flex items-center space-x-2">
+                  <code class="flex-1 text-[11px] bg-surface-container px-3 py-1.5 rounded-lg font-mono text-on-surface truncate">${b.id}</code>
+                  <button onclick="copyToClipboard('${b.id}', 'ID do Board')" class="bg-secondary text-on-secondary hover:bg-on-secondary-fixed-variant p-1.5 rounded-lg transition active:scale-95">
+                    <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Lists -->
+              <div>
+                <span class="block text-[10px] uppercase text-on-surface-variant font-bold mb-1 tracking-wider">Colunas (Lists)</span>
+                <div class="bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1">
+                  ${listsHtml || '<span class="text-[11px] text-on-surface-variant block py-2">Nenhuma coluna encontrada.</span>'}
+                </div>
+              </div>
+
+              <!-- Open in Trello -->
+              <a href="${b.url}" target="_blank" rel="noopener" class="flex items-center justify-center space-x-1.5 text-[12px] font-medium text-secondary hover:underline pt-2">
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                <span>Abrir este Board no Trello</span>
+              </a>
+            </div>
+          </div>`;
       }).join('');
     }
+  }
+}
+
+/**
+ * Alterna a visibilidade dos detalhes do board
+ */
+function toggleTrelloBoard(idx) {
+  const content = document.getElementById(`board-content-${idx}`);
+  const icon = document.getElementById(`board-icon-${idx}`);
+  if (!content || !icon) return;
+  
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    content.classList.add('flex');
+    icon.classList.add('rotate-180');
+  } else {
+    content.classList.add('hidden');
+    content.classList.remove('flex');
+    icon.classList.remove('rotate-180');
+  }
+}
+
+/**
+ * Função utilitária genérica de cópia.
+ */
+async function copyToClipboard(text, itemName = 'Item') {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`${itemName} copiado!`, 'content_copy');
+  } catch (err) {
+    showToast(`Erro ao copiar ${itemName}`, 'error');
   }
 }
 
@@ -997,11 +1070,84 @@ async function init() {
   setInterval(async () => {
     await refreshServiceStatuses();
     await fetchLastSyncTime();
-    // Atualiza instâncias se a seção estiver visível
+    await fetchBrokerLeads();
+    
+    // Atualiza instâncias e leads se a seção estiver visível
     if (state.currentSection === 'connections') {
       await refreshEvolutionInstances();
+    }
+    if (state.currentSection === 'leads') {
+      await fetchLeadsHistory();
     }
   }, CONFIG.statusRefreshInterval);
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ─────────────────────────────────────────────
+// HISTÓRICO DE LEADS
+// ─────────────────────────────────────────────
+async function fetchLeadsHistory() {
+  const ul = document.getElementById('leads-history-list');
+  if (!ul) return;
+
+  if (!state.trelloApiKey || !state.trelloToken) {
+    ul.innerHTML = `
+      <li class="p-8 text-center flex flex-col items-center">
+        <span class="material-symbols-outlined text-[48px] text-on-surface-variant mb-4 opacity-50">lock</span>
+        <p class="text-body-sm text-on-surface-variant max-w-sm">Conecte-se ao Trello na aba de Conexões para buscar os leads capturados nos seus quadros.</p>
+      </li>`;
+    return;
+  }
+
+  // Se já está buscando, não faz duplo
+  if (ul.innerHTML.includes('Buscando...')) return;
+  
+  ul.innerHTML = '<li class="p-8 text-center text-on-surface-variant text-body-sm flex items-center justify-center space-x-2"><span class="material-symbols-outlined spin text-[20px]">refresh</span> <span>Buscando os últimos leads...</span></li>';
+
+  try {
+    // Busca todos os boards abertos com seus cards para extrair o histórico real
+    const url = `https://api.trello.com/1/members/me/boards?filter=open&cards=open&card_fields=name,desc,url,dateLastActivity&key=${state.trelloApiKey}&token=${state.trelloToken}`;
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`HTTP ${resp.status} - ${errText}`);
+    }
+    
+    const boards = await resp.json();
+    let allCards = [];
+    boards.forEach(b => {
+      if (b.cards && b.cards.length > 0) {
+        allCards = allCards.concat(b.cards);
+      }
+    });
+
+    // Ordena do mais recente para o mais antigo (baseado na última atividade)
+    allCards.sort((a, b) => new Date(b.dateLastActivity) - new Date(a.dateLastActivity));
+    
+    // Pega os 50 mais recentes
+    const recentCards = allCards.slice(0, 50);
+
+    if (recentCards.length === 0) {
+      ul.innerHTML = '<li class="p-8 text-center text-on-surface-variant text-body-sm">Nenhum card encontrado nos seus quadros.</li>';
+      return;
+    }
+
+    ul.innerHTML = recentCards.map(c => `
+      <li class="px-6 py-4 hover:bg-surface-container-low transition group">
+        <div class="flex items-start justify-between">
+          <div class="flex flex-col space-y-1">
+            <a href="${c.url}" target="_blank" class="text-body-sm font-medium text-on-surface group-hover:text-primary transition line-clamp-1">${c.name}</a>
+            <span class="text-[11px] text-on-surface-variant block opacity-70">${c.desc ? c.desc.substring(0, 80) + '...' : 'Sem descrição'}</span>
+          </div>
+          <a href="${c.url}" target="_blank" class="text-secondary opacity-0 group-hover:opacity-100 transition p-1 bg-surface-container hover:bg-surface-container-high rounded flex-shrink-0 ml-4">
+            <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+          </a>
+        </div>
+      </li>
+    `).join('');
+    
+  } catch (err) {
+    ul.innerHTML = `<li class="p-8 text-center text-error text-body-sm">Falha ao buscar histórico: ${err.message}</li>`;
+  }
+}

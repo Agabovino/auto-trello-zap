@@ -19,8 +19,8 @@ const CONFIG = {
   evolutionBaseUrl: 'https://evolution.vivercatolico.com.br',
   // Chave da Evolution API — exposta apenas no dashboard interno (não é a senha do usuário final)
   evolutionApiKey: 'evo-zap-agabo-2026',
-  // Qual instância da Evolution API é usada para capturar leads (deve bater com EVOLUTION_INSTANCE no .env)
-  leadSourceInstance: 'agabo-pessoal',
+  // Instância oficial lida dinamicamente do container NGINX (originada do .env)
+  leadSourceInstance: (typeof ENV !== 'undefined' && ENV.EVOLUTION_INSTANCE) ? ENV.EVOLUTION_INSTANCE : 'meu-numero',
   // API Key do Trello — Configure aqui UMA VEZ e o usuário final nunca precisará saber o que é isso!
   trelloApiKey: 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO',
   syncWebhookPath: '/webhook/manual-trello-sync',

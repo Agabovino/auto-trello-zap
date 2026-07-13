@@ -120,8 +120,16 @@ services:
       - n8n_network
     ports:
       - "8082:80"
+    environment:
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-meu-numero}
     volumes:
-      - ./dashboard:/usr/share/nginx/html:ro
+      - ./dashboard:/usr/share/nginx/html
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "const ENV = { EVOLUTION_INSTANCE: '$$EVOLUTION_INSTANCE' };" > /usr/share/nginx/html/env.js
+        nginx -g "daemon off;"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
       interval: 10s

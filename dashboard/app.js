@@ -39,6 +39,7 @@ const CONFIG = {
     { key: 'tunnel',           label: 'Tunnel n8n',       image: 'cloudflare/cloudflared:latest',   port: '—',    url: 'n8n.vivercatolico.com.br',               healthPath: '/healthz' },
     { key: 'tunnel-evolution', label: 'Tunnel Evolution', image: 'cloudflare/cloudflared:latest',   port: '—',    url: 'evolution.vivercatolico.com.br',          healthPath: '/'        },
   ],
+  enableStatsWebhooks: false, // Define se tenta buscar métricas do n8n
 };
 
 // ─────────────────────────────────────────────
@@ -757,28 +758,30 @@ function disconnectTrello() {
 // BROKER LEADS — consulta via n8n API
 // ─────────────────────────────────────────────
 async function fetchBrokerLeads() {
-  try {
-    const resp = await fetch(`${CONFIG.n8nBaseUrl}/webhook/dashboard-stats`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.brokers) {
-        data.brokers.forEach(b => { state.brokerLeads[b.id] = b; });
-        document.getElementById('kpi-total').textContent = data.totalLeads ?? '—';
-        document.getElementById('kpi-today').textContent = data.todayLeads ?? '—';
+  if (CONFIG.enableStatsWebhooks) {
+    try {
+      const resp = await fetch(`${CONFIG.n8nBaseUrl}/webhook/dashboard-stats`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.brokers) {
+          data.brokers.forEach(b => { state.brokerLeads[b.id] = b; });
+          document.getElementById('kpi-total').textContent = data.totalLeads ?? '—';
+          document.getElementById('kpi-today').textContent = data.todayLeads ?? '—';
+        }
+        if (data.lastSync) state.lastSync = new Date(data.lastSync);
+        addLog('success', `Métricas atualizadas via API (${data.totalLeads ?? '?'} leads total).`);
+        return;
       }
-      if (data.lastSync) state.lastSync = new Date(data.lastSync);
-      addLog('success', `Métricas atualizadas via API (${data.totalLeads ?? '?'} leads total).`);
-      return;
+    } catch {
+      // Fallback below
     }
-  } catch {
-    // Fallback
   }
 
-  addLog('warn', 'Endpoint de métricas indisponível — exibindo dados de demonstração.');
+  // addLog('warn', 'Endpoint de métricas não configurado — exibindo dados locais/demonstração.');
   const demo = {
     'agabo': { id: 'agabo', name: 'Ágabo', leads: 47, lastLead: '8min',  phone: '5583999931422' },
     'brisa': { id: 'brisa', name: 'Brisa', leads: 31, lastLead: '22min', phone: '5583921485647' },
@@ -793,15 +796,17 @@ async function fetchBrokerLeads() {
 // LAST SYNC TIME
 // ─────────────────────────────────────────────
 async function fetchLastSyncTime() {
-  try {
-    const resp = await fetch(`${CONFIG.n8nBaseUrl}/webhook/dashboard-last-sync`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.lastSync) state.lastSync = new Date(data.lastSync);
-    }
-  } catch { /* usa o valor atual */ }
+  if (CONFIG.enableStatsWebhooks) {
+    try {
+      const resp = await fetch(`${CONFIG.n8nBaseUrl}/webhook/dashboard-last-sync`, {
+        signal: AbortSignal.timeout(4000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.lastSync) state.lastSync = new Date(data.lastSync);
+      }
+    } catch { /* ignore */ }
+  }
 
   if (!state.lastSync) state.lastSync = new Date(Date.now() - 7 * 60 * 1000);
   const el1 = document.getElementById('last-sync-time');

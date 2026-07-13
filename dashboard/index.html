@@ -235,18 +235,7 @@
           </div>
         </div>
 
-        <!-- Main sync CTA -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-outline-variant/40 pt-section-margin">
-          <div>
-            <h2 class="text-headline-md text-on-surface">Controle de Sincronização</h2>
-            <p class="text-body-sm text-on-surface-variant mt-1">Dispare manualmente a atualização da lista de leads no Trello.</p>
-          </div>
-          <button id="main-sync-btn" onclick="triggerTrelloSync()"
-                  class="flex items-center space-x-2 bg-secondary text-on-secondary px-6 py-3 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-all duration-200 shadow-level-1 flex-shrink-0 active:scale-95 font-medium">
-            <span class="material-symbols-outlined text-[20px]" id="main-sync-icon">sync</span>
-            <span id="main-sync-label">Atualizar Lista no Trello</span>
-          </button>
-        </div>
+
       </section>
 
       <!-- === CONEXÕES === -->
@@ -446,9 +435,7 @@
             <h2 class="text-headline-md text-on-surface">Desempenho dos Corretores</h2>
             <p class="text-body-sm text-on-surface-variant mt-1">Distribuição total de leads por corretor.</p>
           </div>
-          <button onclick="triggerTrelloSync()" class="flex items-center space-x-2 bg-secondary text-on-secondary px-5 py-2.5 rounded-DEFAULT hover:bg-on-secondary-fixed-variant transition-all shadow-level-1 text-label-md active:scale-95 duration-100">
-            <span class="material-symbols-outlined text-[18px]">sync</span><span>Atualizar no Trello</span>
-          </button>
+
         </div>
         <div id="broker-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-card-gap">
           <div class="skeleton h-64 rounded-xl"></div>

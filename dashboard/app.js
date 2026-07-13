@@ -817,34 +817,34 @@ async function triggerTrelloSync() {
   if (state.syncing) return;
   state.syncing = true;
   setSyncLoadingState(true);
-  addLog('info', 'Sincronização manual disparada pelo usuário...');
+  addLog('info', 'Sincronização acionada pelo usuário...');
 
   try {
-    const resp = await fetch(`${CONFIG.n8nBaseUrl}${CONFIG.syncWebhookPath}`, {
+    // Usando mode: 'no-cors' e text/plain para evitar bloqueio de CORS (preflight) pelo navegador
+    await fetch(`${CONFIG.n8nBaseUrl}${CONFIG.syncWebhookPath}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ source: 'dashboard', triggeredAt: new Date().toISOString() }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(5000),
     });
 
-    if (resp.ok) {
-      state.lastSync = new Date();
-      showToast('Lista do Trello atualizada com sucesso!', 'check_circle');
-      addLog('success', 'Sincronização com Trello concluída com sucesso.');
-      document.getElementById('last-sync-time').textContent = formatDateTime(state.lastSync);
-      document.getElementById('header-last-update').textContent = `Última sync: agora mesmo`;
-      await fetchBrokerLeads();
-      renderBrokerGrid();
-    } else {
-      throw new Error(`HTTP ${resp.status}`);
-    }
-  } catch (err) {
-    await new Promise(r => setTimeout(r, 1200));
+    // Opaque response (no-cors) não permite ler status HTTP, assumimos sucesso se a rede não falhar
     state.lastSync = new Date();
-    showToast('Sync disparado (modo demonstração).', 'info');
-    addLog('warn', `Webhook indisponível (${err.message}) — resposta simulada.`);
-    document.getElementById('last-sync-time').textContent = formatDateTime(state.lastSync);
-    document.getElementById('header-last-update').textContent = `Última sync: agora mesmo`;
+    showToast('Sincronização enviada ao n8n!', 'check_circle');
+    addLog('success', 'Comando de sync enviado para o webhook.');
+    
+    const el1 = document.getElementById('last-sync-time');
+    const el2 = document.getElementById('header-last-update');
+    if (el1) el1.textContent = formatDateTime(state.lastSync);
+    if (el2) el2.textContent = `Última sync: agora mesmo`;
+    
+    setTimeout(() => {
+      fetchBrokerLeads();
+    }, 2000);
+  } catch (err) {
+    showToast('Erro de rede ao acionar o n8n.', 'error');
+    addLog('error', `Falha ao contatar webhook: ${err.message}`);
   } finally {
     state.syncing = false;
     setSyncLoadingState(false);

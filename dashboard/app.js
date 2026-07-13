@@ -20,7 +20,7 @@ const CONFIG = {
   // Chave da Evolution API — exposta apenas no dashboard interno (não é a senha do usuário final)
   evolutionApiKey: 'evo-zap-agabo-2026',
   // Qual instância da Evolution API é usada para capturar leads (deve bater com EVOLUTION_INSTANCE no .env)
-  leadSourceInstance: 'atendimoveis_meta',
+  leadSourceInstance: 'meu-numero',
   // API Key do Trello — Configure aqui UMA VEZ e o usuário final nunca precisará saber o que é isso!
   trelloApiKey: 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO',
   syncWebhookPath: '/webhook/manual-trello-sync',

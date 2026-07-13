@@ -12,7 +12,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.trello.com/1/lists/{{ $env.TRELLO_LIST_ID }}/cards",
+        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID }}/cards?filter=open",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "trelloApi",
         "options": {}

@@ -166,9 +166,6 @@
     </nav>
     <div class="flex items-center space-x-3 ml-auto">
       <span id="header-last-update" class="text-body-sm text-on-surface-variant hidden lg:block">Sincronizando...</span>
-      <button onclick="refreshAll()" title="Atualizar dados" class="text-primary hover:bg-surface-container-low p-2 rounded-full transition-colors active:scale-95 duration-100">
-        <span class="material-symbols-outlined" id="refresh-icon">refresh</span>
-      </button>
       <button onclick="triggerTrelloSync()" class="hidden sm:flex items-center space-x-2 text-label-md text-primary hover:bg-surface-container-low px-3 py-1.5 rounded-full transition-colors active:scale-95 duration-100 border border-outline-variant">
         <span class="material-symbols-outlined text-[16px]" id="header-sync-icon">sync</span>
         <span id="header-sync-label">Sync Trello</span>
@@ -208,7 +205,13 @@
 
         <!-- Infra status pills -->
         <div>
-          <h2 class="text-headline-md text-on-surface mb-4">Status da Infraestrutura</h2>
+          <div class="flex items-center justify-between mb-4 gap-4">
+            <h2 class="text-headline-md text-on-surface">Status da Infraestrutura</h2>
+            <button onclick="refreshAll()" title="Atualizar todos os dados visuais" class="flex items-center space-x-2 bg-[#d97706] text-white px-4 py-2 rounded-full hover:bg-[#b45309] transition-colors shadow-sm active:scale-95 duration-100 text-label-md font-medium">
+              <span class="material-symbols-outlined text-[18px]" id="refresh-icon">refresh</span>
+              <span class="hidden sm:inline">Atualizar Visor</span>
+            </button>
+          </div>
           <div id="infra-status-row" class="flex flex-wrap gap-3">
             <div class="skeleton h-9 w-44 rounded-full"></div>
             <div class="skeleton h-9 w-44 rounded-full"></div>
@@ -549,6 +552,6 @@
   </div>
 </div>
 
-<script src="app.js?v=2.8"></script>
+<script src="app.js?v=2.9"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "dashboard-sync-trello",
+        "path": "manual-trello-sync",
         "responseMode": "onReceived",
         "options": {}
       },
@@ -13,7 +13,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [-700, 300],
-      "webhookId": "dashboard-sync-trello"
+      "webhookId": "manual-trello-sync"
     },
     {
       "parameters": {

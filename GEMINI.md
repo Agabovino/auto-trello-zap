@@ -87,7 +87,8 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - **Histórico de Leads e Correções:** Criada nova aba "Histórico de Leads" no dashboard que busca todos os cards abertos no Trello, classificados por ordem de modificação, usando diretamente a API do Trello. Corrigido bug de navegação (array `sections`) que ocultava a aba e causava tela branca.
     - **Parametrização de IDs do Trello no n8n:** Removidos IDs estáticos (`listId` e `boardId`) diretamente dos nós no n8n (`🔐 Meta Webhook Verification (GET).json` e `workflow-import-historical-contacts.json`). Eles agora são obtidos dinamicamente através de expressões (`{{ $env.TRELLO_LIST_ID }}` e `{{ $env.TRELLO_BOARD_ID }}`).
     - **Acesso a Variáveis de Ambiente no n8n:** Adicionada a flag `N8N_ENV_VARS_ALLOW_ACCESS=EVOLUTION_INSTANCE,TRELLO_LIST_ID,TRELLO_BOARD_ID,N8N_API_KEY` ao `docker-compose.yml` para permitir o uso da sintaxe de expressões interpoladas (`=https://.../{{ $env.TRELLO_LIST_ID }}/...`) contornando o erro de *access denied* e as limitações de CORS.
-
-
+    - **Limpeza de UI e Correção de Cache CORS:** Removidos botões redundantes de sincronização do Trello na interface do dashboard. O caminho do webhook manual foi corrigido para `manual-trello-sync` no n8n e o script `app.js` foi configurado com `mode: 'no-cors'` e versionamento cache-busting (`?v=2.x`) para evitar bloqueios preflight do navegador.
+    - **Prevenção de Erros no Console:** Desabilitadas requisições padrão para webhooks de estatísticas inexistentes (`dashboard-stats` e `dashboard-last-sync`), utilizando os fallbacks locais para evitar poluição de erros CORS no console do usuário.
+    - **Injeção Dinâmica de Variáveis no Frontend:** Criado o script `env-injector.sh` mapeado via `/docker-entrypoint.d/` no container do NGINX. Isso permite que a variável `EVOLUTION_INSTANCE` definida no `.env` seja injetada automaticamente no Javascript do Dashboard (`env.js`) a cada restart do container, eliminando valores *hardcoded* e mantendo a arquitetura puramente stateless.
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*

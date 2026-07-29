@@ -15,14 +15,14 @@
 // CONFIG
 // ─────────────────────────────────────────────
 const CONFIG = {
-  n8nBaseUrl: 'https://n8n.vivercatolico.com.br',
-  evolutionBaseUrl: 'https://evolution.vivercatolico.com.br',
-  // Chave da Evolution API — exposta apenas no dashboard interno (não é a senha do usuário final)
-  evolutionApiKey: 'evo-zap-agabo-2026',
+  n8nBaseUrl: (typeof ENV !== 'undefined' && ENV.N8N_BASE_URL && ENV.N8N_BASE_URL.trim() !== '') ? ENV.N8N_BASE_URL.replace(/\/+$/, '') : 'https://n8n.vivercatolico.com.br',
+  evolutionBaseUrl: (typeof ENV !== 'undefined' && ENV.EVOLUTION_BASE_URL && ENV.EVOLUTION_BASE_URL.trim() !== '') ? ENV.EVOLUTION_BASE_URL.replace(/\/+$/, '') : 'https://evolution.vivercatolico.com.br',
+  // Chave da Evolution API — exposta apenas no dashboard interno
+  evolutionApiKey: (typeof ENV !== 'undefined' && ENV.EVOLUTION_API_KEY && ENV.EVOLUTION_API_KEY.trim() !== '') ? ENV.EVOLUTION_API_KEY : 'evo-zap-agabo-2026',
   // Instância oficial lida dinamicamente do container NGINX (originada do .env)
   leadSourceInstance: (typeof ENV !== 'undefined' && ENV.EVOLUTION_INSTANCE) ? ENV.EVOLUTION_INSTANCE : 'meu-numero',
-  // API Key do Trello — Configure aqui UMA VEZ e o usuário final nunca precisará saber o que é isso!
-  trelloApiKey: 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO',
+  // API Key do Trello
+  trelloApiKey: (typeof ENV !== 'undefined' && ENV.TRELLO_API_KEY && ENV.TRELLO_API_KEY.trim() !== '') ? ENV.TRELLO_API_KEY : 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO',
   syncWebhookPath: '/webhook/manual-trello-sync',
   statusRefreshInterval: 30_000,
   // Intervalo para polling de QR code quando instância está desconectada (ms)
@@ -32,12 +32,12 @@ const CONFIG = {
     { id: 'brisa', name: 'Brisa',  phone: '5583921485647', avatar: 'BR', role: 'Corretora Pleno'  },
   ],
   services: [
-    { key: 'n8n',              label: 'n8n',              image: 'n8nio/n8n:latest',                port: '5678', url: 'https://n8n.vivercatolico.com.br',      healthPath: '/healthz' },
-    { key: 'evolution',        label: 'Evolution API',    image: 'evoapicloud/evolution-api:latest', port: '8081', url: 'https://evolution.vivercatolico.com.br', healthPath: '/'        },
+    { key: 'n8n',              label: 'n8n',              image: 'n8nio/n8n:latest',                port: '5678', url: (typeof ENV !== 'undefined' && ENV.N8N_BASE_URL) ? ENV.N8N_BASE_URL : 'https://n8n.vivercatolico.com.br',      healthPath: '/healthz' },
+    { key: 'evolution',        label: 'Evolution API',    image: 'evoapicloud/evolution-api:latest', port: '8081', url: (typeof ENV !== 'undefined' && ENV.EVOLUTION_BASE_URL) ? ENV.EVOLUTION_BASE_URL : 'https://evolution.vivercatolico.com.br', healthPath: '/'        },
     { key: 'postgres',         label: 'PostgreSQL',       image: 'postgres:15-alpine',              port: '5432', url: 'Rede interna',                           healthPath: null       },
     { key: 'redis',            label: 'Redis',            image: 'redis:7-alpine',                  port: '6379', url: 'Rede interna',                           healthPath: null       },
-    { key: 'tunnel',           label: 'Tunnel n8n',       image: 'cloudflare/cloudflared:latest',   port: '—',    url: 'n8n.vivercatolico.com.br',               healthPath: '/healthz' },
-    { key: 'tunnel-evolution', label: 'Tunnel Evolution', image: 'cloudflare/cloudflared:latest',   port: '—',    url: 'evolution.vivercatolico.com.br',          healthPath: '/'        },
+    { key: 'tunnel',           label: 'Tunnel n8n',       image: 'cloudflare/cloudflared:latest',   port: '—',    url: (typeof ENV !== 'undefined' && ENV.N8N_BASE_URL) ? ENV.N8N_BASE_URL.replace(/^https?:\/\//, '') : 'n8n.vivercatolico.com.br',               healthPath: '/healthz' },
+    { key: 'tunnel-evolution', label: 'Tunnel Evolution', image: 'cloudflare/cloudflared:latest',   port: '—',    url: (typeof ENV !== 'undefined' && ENV.EVOLUTION_BASE_URL) ? ENV.EVOLUTION_BASE_URL.replace(/^https?:\/\//, '') : 'evolution.vivercatolico.com.br',          healthPath: '/'        },
   ],
   enableStatsWebhooks: false, // Define se tenta buscar métricas do n8n
 };

@@ -37,7 +37,7 @@ Este guia fornece instruções passo a passo para configurar um ambiente dockeri
 3. Gere um **Token** de acesso clicando no link de autorização na mesma página.
 4. No n8n, crie uma credencial do tipo **Trello API** com a Key e o Token.
 
-> **Credencial já configurada neste projeto (n8n ID):** `WGhjY0TBSOX8LgMk`
+> **Nota:** Todos os fluxos deste projeto utilizam requisições HTTP nativas consumindo a API Key e Token definidos diretamente no arquivo `.env` (com fallbacks de ID de Lista e Board), tornando a automação 100% autônoma e sem dependência de credenciais salvas no banco do n8n.
 
 ### Obter o ID de uma Lista do Trello
 

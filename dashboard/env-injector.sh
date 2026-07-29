@@ -1,2 +1,11 @@
 #!/bin/sh
-echo "const ENV = { EVOLUTION_INSTANCE: '${EVOLUTION_INSTANCE:-meu-numero}' };" > /usr/share/nginx/html/env.js
+cat <<EOF > /usr/share/nginx/html/env.js
+const ENV = {
+  EVOLUTION_INSTANCE: '${EVOLUTION_INSTANCE:-meu-numero}',
+  N8N_BASE_URL: '${WEBHOOK_URL}',
+  EVOLUTION_BASE_URL: '${SERVER_URL}',
+  EVOLUTION_API_KEY: '${EVOLUTION_API_KEY}',
+  TRELLO_API_KEY: '${TRELLO_API_KEY}'
+};
+EOF
+

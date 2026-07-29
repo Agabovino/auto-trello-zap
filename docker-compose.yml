@@ -122,6 +122,10 @@ services:
       - "8082:80"
     environment:
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-meu-numero}
+      - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.vivercatolico.com.br/}
+      - SERVER_URL=${SERVER_URL:-https://evolution.vivercatolico.com.br}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-evo-zap-agabo-2026}
+      - TRELLO_API_KEY=${TRELLO_API_KEY:-}
     volumes:
       - ./dashboard:/usr/share/nginx/html
       - ./dashboard/env-injector.sh:/docker-entrypoint.d/40-env-injector.sh:ro

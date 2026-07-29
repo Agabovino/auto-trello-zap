@@ -1,4 +1,5 @@
 {
+  "id": "EB8XS9NWHk4UqeL3",
   "name": "🔄 Importar Contatos Históricos do WhatsApp → Trello",
   "nodes": [
     {
@@ -12,28 +13,41 @@
       "name": "Webhook Sync Trello",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-700, 300],
+      "position": [
+        -700,
+        300
+      ],
       "webhookId": "manual-trello-sync"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID }}/cards?filter=open",
+        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID || '6a1494722dc95789afdde69b' }}/cards?filter=open",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "trelloApi",
-        "options": {}
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.TRELLO_API_KEY }}"
+            },
+            {
+              "name": "token",
+              "value": "={{ $env.TRELLO_TOKEN }}"
+            }
+          ]
+        }
       },
       "id": "node-get-trello-cards",
       "name": "Obter Cards Trello",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [-480, 300],
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
+      "position": [
+        -480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -43,7 +57,10 @@
       "name": "Agrupar Cards Trello",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-260, 300]
+      "position": [
+        -260,
+        300
+      ]
     },
     {
       "parameters": {
@@ -71,7 +88,10 @@
       "name": "Obter Contatos Evolution",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [-40, 300]
+      "position": [
+        -40,
+        300
+      ]
     },
     {
       "parameters": {
@@ -81,7 +101,10 @@
       "name": "Agrupar Contatos Evolution",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [180, 300]
+      "position": [
+        180,
+        300
+      ]
     },
     {
       "parameters": {
@@ -109,7 +132,10 @@
       "name": "Obter Chats Evolution",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [400, 300]
+      "position": [
+        400,
+        300
+      ]
     },
     {
       "parameters": {
@@ -119,7 +145,10 @@
       "name": "Filtrar Apenas Novos Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [620, 300]
+      "position": [
+        620,
+        300
+      ]
     },
     {
       "parameters": {
@@ -130,11 +159,14 @@
       "name": "Split in Batches",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [840, 300]
+      "position": [
+        840,
+        300
+      ]
     },
     {
       "parameters": {
-        "listId": "={{ $env.TRELLO_LIST_ID }}",
+        "listId": "={{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}",
         "name": "={{ $('Split in Batches').item.json.cardTitle }}",
         "description": "={{ $('Split in Batches').item.json.cardDescription }}",
         "additionalFields": {
@@ -145,16 +177,13 @@
       "name": "Criar Card no Trello",
       "type": "n8n-nodes-base.trello",
       "typeVersion": 1,
-      "position": [1080, 200],
+      "position": [
+        1080,
+        200
+      ],
       "retryOnFail": true,
       "maxTries": 5,
-      "waitBetweenTries": 5000,
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -165,7 +194,10 @@
       "name": "Esperar 10 Segundos",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1320, 200]
+      "position": [
+        1320,
+        200
+      ]
     }
   ],
   "connections": {

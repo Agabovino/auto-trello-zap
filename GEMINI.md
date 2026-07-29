@@ -45,17 +45,20 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
 ## 📖 Documentação Adicional
 
 - [TUTORIAL.md](./TUTORIAL.md): Guia passo a passo para configuração do ambiente e integração detalhada das credenciais do WhatsApp (Evolution API / Meta Cloud API) e Trello.
+- [HOSTINGER_DEPLOY.md](./HOSTINGER_DEPLOY.md): Guia completo de implantação em produção no Hostinger VPS utilizando Docker Compose e Cloudflare Tunnels.
 
 ## 🧠 Memória do Projeto
 
 - **Túnel n8n:** ID `83f60782-a2df-47bc-83df-4adea1f81a65` (Nome: `trello_auto_zap`)
 - **Túnel Evolution:** ID `46bff066-a990-4081-8812-30896245c338` (Configurado via `TUNNEL_TOKEN_EVOLUTION`)
-- **Domínio Principal:** `vivercatolico.com.br`
+- **Domínio Principal:** `vivercatolico.com.br` (ou qualquer domínio configurado na Hostinger/Cloudflare)
 - **Subdomínios:**
     - n8n: `n8n.vivercatolico.com.br`
     - Evolution API & Manager: `evolution.vivercatolico.com.br` (Interface visual em `/manager/`)
-- **Status da Doc:** Atualizado com túnel gerenciado via painel do Cloudflare e sem arquivos de credenciais locais.
+- **Status da Doc:** Atualizado com túnel gerenciado via painel do Cloudflare e guia de hospedagem no Hostinger VPS.
 - **Correções Recentes:**
+    - **Preparado Deploy para Hostinger (VPS Docker):** Criado o documento [HOSTINGER_DEPLOY.md](./HOSTINGER_DEPLOY.md) detalhando o deploy completo do ecossistema via Hostinger VPS (Ubuntu com Docker Compose) e Cloudflare Tunnels.
+    - **Parametrização Dinâmica do Dashboard no Hostinger:** Atualizados `dashboard/env-injector.sh`, `dashboard/app.js` e `docker-compose.yml` para injetar `WEBHOOK_URL`, `SERVER_URL`, `EVOLUTION_API_KEY` e `TRELLO_API_KEY` dinamicamente no frontend `env.js`, permitindo que o Dashboard funcione 100% hospedado na Hostinger com domínios customizados sem qualquer alteração de código.
     - Configurado acesso remoto seguro para a **Evolution API** e o seu **Manager** através de um túnel dedicado do Cloudflared (`tunnel-evolution`) apontando para o subdomínio `evolution.vivercatolico.com.br` na porta interna `8080` (porta `8081` externa no host), com acesso visual em `/manager/`.
     - Migrado túnel local para túnel gerenciado (Managed Tunnel) usando `TUNNEL_TOKEN`.
     - Atualizado `docker-compose.yml` para consumir o token do túnel sem expor arquivos locais.
@@ -89,6 +92,11 @@ docker exec auto_trello_zap-tunnel-1 curl -I http://n8n:5678
     - **Acesso a Variáveis de Ambiente no n8n:** Adicionada a flag `N8N_ENV_VARS_ALLOW_ACCESS=EVOLUTION_INSTANCE,TRELLO_LIST_ID,TRELLO_BOARD_ID,N8N_API_KEY` ao `docker-compose.yml` para permitir o uso da sintaxe de expressões interpoladas (`=https://.../{{ $env.TRELLO_LIST_ID }}/...`) contornando o erro de *access denied* e as limitações de CORS.
     - **Limpeza de UI e Correção de Cache CORS:** Removidos botões redundantes de sincronização do Trello na interface do dashboard. O caminho do webhook manual foi corrigido para `manual-trello-sync` no n8n e o script `app.js` foi configurado com `mode: 'no-cors'` e versionamento cache-busting (`?v=2.x`) para evitar bloqueios preflight do navegador.
     - **Prevenção de Erros no Console:** Desabilitadas requisições padrão para webhooks de estatísticas inexistentes (`dashboard-stats` e `dashboard-last-sync`), utilizando os fallbacks locais para evitar poluição de erros CORS no console do usuário.
-    - **Injeção Dinâmica de Variáveis no Frontend:** Criado o script `env-injector.sh` mapeado via `/docker-entrypoint.d/` no container do NGINX. Isso permite que a variável `EVOLUTION_INSTANCE` definida no `.env` seja injetada automaticamente no Javascript do Dashboard (`env.js`) a cada restart do container, eliminando valores *hardcoded* e mantendo a arquitetura puramente stateless.
+    - **Parametrização Autônoma do Trello via HTTP Request:** Todos os nós de busca e criação no Trello foram convertidos para requisições HTTP nativas consumindo `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_LIST_ID` e `TRELLO_BOARD_ID` das variáveis de ambiente com fallbacks de ID (`{{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}`). Isso tornou o fluxo 100% livre de dependência de credenciais salvas no banco SQLite do n8n.
+    - **Leitura Direta da Instância Sem Perda de Payload:** Atualizado o nó de código no n8n para ler `EVOLUTION_INSTANCE` diretamente do ambiente (`process.env.EVOLUTION_INSTANCE || $env.EVOLUTION_INSTANCE`), eliminando o nó *Set* intermediário que resetava o corpo do webhook e causava rejeição de mensagens por "Formato não reconhecido".
+    - **Formatação de Notificação do WhatsApp com Link Clicável (`https://wa.me/`):** Atualizada a mensagem de notificação enviada aos corretores ao mover cards no Trello. Os parênteses ao redor do número foram removidos e foi adicionado um link direto clicável do WhatsApp (`https://wa.me/[numero]`), mantendo o nome do lead quando disponível (ex: `"Olá! O lead Jean Nascimento https://wa.me/558197537309 foi adicionado à sua coluna!"`).
+    - **Resolução de Erro de Sintaxe em Expressões do n8n (IIFE):** Corrigido erro `ERROR: invalid syntax` nas expressões do n8n utilizando a estrutura de função autoexecutável `={{ (() => { ... })() }}`, permitindo declarações multilinhas e processamento avançado de strings antes do retorno do objeto JSON para a Evolution API.
+    - **Preservação de Corretores Personalizados:** Preservados e validados todos os nós de corretores adicionados no fluxo `🔐 Meta Webhook Verification (GET).json` (Jean, Ana Paula, Gustavo, Isabelle, Karla).
 ---
 *Gerado automaticamente pelo Gemini CLI para contextualização do workspace.*
+

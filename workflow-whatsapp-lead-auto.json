@@ -1,4 +1,5 @@
 {
+  "id": "RnYYAqQH63LFOtvU",
   "name": "📲 WhatsApp → Trello (Auto Lead sem repetição)",
   "nodes": [
     {
@@ -12,7 +13,10 @@
       "name": "Webhook Lead Entrada",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-600, 300],
+      "position": [
+        -600,
+        300
+      ],
       "webhookId": "ec5b9acb-cb32-4a42-aa42-bb781c3f61f1"
     },
     {
@@ -23,7 +27,10 @@
       "name": "Parsear Mensagem WhatsApp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-380, 300]
+      "position": [
+        -380,
+        300
+      ]
     },
     {
       "parameters": {
@@ -40,12 +47,15 @@
       "name": "Deve Processar?",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 1,
-      "position": [-160, 300]
+      "position": [
+        -160,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.trello.com/1/lists/6a1494722dc95789afdde75c/cards",
+        "url": "=https://api.trello.com/1/lists/{{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}/cards",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -69,7 +79,10 @@
       "name": "Buscar Cards Existentes (Trello)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [60, 300]
+      "position": [
+        60,
+        300
+      ]
     },
     {
       "parameters": {
@@ -79,7 +92,10 @@
       "name": "Verificar Duplicata no Trello",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [280, 300]
+      "position": [
+        280,
+        300
+      ]
     },
     {
       "parameters": {
@@ -96,28 +112,54 @@
       "name": "É Novo Lead?",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 1,
-      "position": [500, 300]
+      "position": [
+        500,
+        300
+      ]
     },
     {
       "parameters": {
-        "listId": "6a1494722dc95789afdde75c",
-        "name": "={{ $json.cardTitle }}",
-        "description": "={{ $json.cardDescription }}",
-        "additionalFields": {
-          "pos": "top"
-        }
+        "method": "POST",
+        "url": "https://api.trello.com/1/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "idList",
+              "value": "={{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.cardTitle }}"
+            },
+            {
+              "name": "desc",
+              "value": "={{ $json.cardDescription }}"
+            },
+            {
+              "name": "pos",
+              "value": "top"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.TRELLO_API_KEY }}"
+            },
+            {
+              "name": "token",
+              "value": "={{ $env.TRELLO_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-trello-create",
       "name": "Criar Card no Trello (Leads)",
-      "type": "n8n-nodes-base.trello",
-      "typeVersion": 1,
-      "position": [720, 300],
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -131,7 +173,10 @@
       "name": "Resposta 200 OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [940, 300]
+      "position": [
+        940,
+        300
+      ]
     }
   ],
   "connections": {

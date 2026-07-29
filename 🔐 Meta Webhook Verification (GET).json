@@ -4,8 +4,7 @@
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "lead-capture",
+        "path": "meta-verify",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -13,36 +12,24 @@
       "name": "Webhook Lead Entrada",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-400, -64],
+      "position": [
+        -400,
+        -64
+      ],
       "webhookId": "ec5b9acb-cb32-4a42-aa42-bb781c3f61f1"
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "allowedInstance",
-              "value": "={{ $env.EVOLUTION_INSTANCE || '' }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node-add-allowed-instance",
-      "name": "Adicionar allowedInstance",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 2,
-      "position": [-220, -64]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════\n// PARSING: Evolution API (Baileys) + Meta Cloud API\n// Filtra por instância configurada via env EVOLUTION_INSTANCE\n// Deixe EVOLUTION_INSTANCE vazio para aceitar qualquer instância\n// ═══════════════════════════════════════════════════════\n\nconst body = $input.item.json.body || $input.item.json;\n\nlet senderPhone = '';\nlet senderName  = 'Desconhecido';\nlet instanceName = '';\nlet shouldProcess = false;\n\n// ── Instância permitida (vazia = qualquer uma) ──\nconst allowedInstance = ($input.item.json.allowedInstance || '').trim();\n\n// ── Detectar formato ──\nconst isEvolution = !!(body?.event || body?.data?.key);\nconst isMeta      = !!(body?.object === 'whatsapp_business_account' || body?.entry);\n\nif (isEvolution) {\n  const event = body?.event || '';\n\n  // Só processar eventos de mensagens recebidas\n  if (event && event !== 'messages.upsert') {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: evento ignorado (${event})` } }];\n  }\n\n  const data = body?.data || {};\n\n  // Ignorar mensagens enviadas pelo próprio número\n  if (data?.key?.fromMe === true) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: fromMe=true, mensagem nossa' } }];\n  }\n\n  // Ignorar grupos\n  const remoteJid = data?.key?.remoteJid || '';\n  if (remoteJid.endsWith('@g.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: mensagem de grupo ignorada' } }];\n  }\n\n  // Ignorar se não tem JID de contato individual\n  if (!remoteJid.includes('@s.whatsapp.net') && !remoteJid.includes('@c.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: JID não reconhecido' } }];\n  }\n\n  // ── Filtro por instância ──\n  instanceName = body?.instance || data?.instanceName || body?.instanceName || '';\n  if (allowedInstance && instanceName && instanceName !== allowedInstance) {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: instância ignorada (${instanceName} != ${allowedInstance})` } }];\n  }\n\n  senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');\n  senderName  = data?.pushName || body?.pushName || '';\n  shouldProcess = true;\n\n} else if (isMeta) {\n  const entry   = body?.entry?.[0];\n  const change  = entry?.changes?.[0];\n  const value   = change?.value;\n  const message = value?.messages?.[0];\n\n  if (!message) {\n    return [{ json: { shouldProcess: false, skipReason: 'Meta: callback sem messages[]' } }];\n  }\n\n  senderPhone = message.from || '';\n  const contact = value?.contacts?.[0];\n  senderName  = contact?.profile?.name || '';\n  shouldProcess = true;\n\n} else {\n  return [{ json: { shouldProcess: false, skipReason: 'Formato não reconhecido', preview: JSON.stringify(body).substring(0, 200) } }];\n}\n\nif (!senderPhone) {\n  return [{ json: { shouldProcess: false, skipReason: 'Número do remetente não identificado' } }];\n}\n\n// ── Montar dados do card ──\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst source = isEvolution ? `Evolution API${instanceName ? ` (${instanceName})` : ''}` : 'Meta Cloud API';\n\nconst displayName = (senderName && senderName.trim() !== '') ? senderName.trim() : null;\nconst cardTitle = displayName ? `${displayName} (${senderPhone})` : `Lead ${senderPhone}`;\n\nconst cardDescription =\n  `📲 Lead capturado automaticamente via WhatsApp\\n` +\n  `Fonte: ${source}\\n\\n` +\n  (displayName ? `Nome: ${displayName}\\n` : `Nome: (desconhecido)\\n`) +\n  `Número: ${senderPhone}\\n` +\n  `Data/Hora: ${now}`;\n\nreturn [{\n  json: {\n    shouldProcess,\n    senderPhone,\n    senderName: displayName || '',\n    cardTitle,\n    cardDescription,\n    instanceName,\n    timestamp: now\n  }\n}];"
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// PARSING: Evolution API (Baileys) + Meta Cloud API\n// ═══════════════════════════════════════════════════════\n\nconst body = $input.item.json.body || $input.item.json;\n\nlet senderPhone = '';\nlet senderName  = 'Desconhecido';\nlet instanceName = '';\nlet shouldProcess = false;\n\n// ── Instância permitida (vazia = qualquer uma) ──\nconst allowedInstance = (process.env.EVOLUTION_INSTANCE || $env.EVOLUTION_INSTANCE || '').trim();\n\n// ── Detectar formato ──\nconst isEvolution = !!(body?.event || body?.data?.key);\nconst isMeta      = !!(body?.object === 'whatsapp_business_account' || body?.entry);\n\nif (isEvolution) {\n  const event = body?.event || '';\n\n  // Só processar eventos de mensagens recebidas\n  if (event && event !== 'messages.upsert') {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: evento ignorado (${event})` } }];\n  }\n\n  const data = body?.data || {};\n\n  // Ignorar mensagens enviadas pelo próprio número\n  if (data?.key?.fromMe === true) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: fromMe=true, mensagem nossa' } }];\n  }\n\n  // Ignorar grupos\n  const remoteJid = data?.key?.remoteJid || '';\n  if (remoteJid.endsWith('@g.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: mensagem de grupo ignorada' } }];\n  }\n\n  // Ignorar se não tem JID de contato individual\n  if (!remoteJid.includes('@s.whatsapp.net') && !remoteJid.includes('@c.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: JID não reconhecido' } }];\n  }\n\n  // ── Filtro por instância ──\n  instanceName = body?.instance || data?.instanceName || body?.instanceName || '';\n  if (allowedInstance && instanceName && instanceName !== allowedInstance) {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: instância ignorada (${instanceName} != ${allowedInstance})` } }];\n  }\n\n  senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');\n  senderName  = data?.pushName || body?.pushName || '';\n  shouldProcess = true;\n\n} else if (isMeta) {\n  const entry   = body?.entry?.[0];\n  const change  = entry?.changes?.[0];\n  const value   = change?.value;\n  const message = value?.messages?.[0];\n\n  if (!message) {\n    return [{ json: { shouldProcess: false, skipReason: 'Meta: callback sem messages[]' } }];\n  }\n\n  senderPhone = message.from || '';\n  const contact = value?.contacts?.[0];\n  senderName  = contact?.profile?.name || '';\n  shouldProcess = true;\n\n} else {\n  return [{ json: { shouldProcess: false, skipReason: 'Formato não reconhecido', preview: JSON.stringify(body).substring(0, 200) } }];\n}\n\nif (!senderPhone) {\n  return [{ json: { shouldProcess: false, skipReason: 'Número do remetente não identificado' } }];\n}\n\n// ── Montar dados do card ──\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst source = isEvolution ? `Evolution API${instanceName ? ` (${instanceName})` : ''}` : 'Meta Cloud API';\n\nconst displayName = (senderName && senderName.trim() !== '') ? senderName.trim() : null;\nconst cardTitle = displayName ? `${displayName} (${senderPhone})` : `Lead ${senderPhone}`;\n\nconst cardDescription =\n  `📲 Lead capturado automaticamente via WhatsApp\\n` +\n  `Fonte: ${source}\\n\\n` +\n  (displayName ? `Nome: ${displayName}\\n` : `Nome: (desconhecido)\\n`) +\n  `Número: ${senderPhone}\\n` +\n  `Data/Hora: ${now}`;\n\nreturn [{\n  json: {\n    shouldProcess,\n    senderPhone,\n    senderName: displayName || '',\n    cardTitle,\n    cardDescription,\n    instanceName,\n    timestamp: now\n  }\n}];"
       },
       "id": "9b1f8029-39a3-4777-8e4f-aa35d9c6d2fd",
       "name": "Parsear Mensagem de Lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-50, -64]
+      "position": [
+        -48,
+        -64
+      ]
     },
     {
       "parameters": {
@@ -59,24 +46,42 @@
       "name": "É um Lead?",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 1,
-      "position": [150, -64]
+      "position": [
+        160,
+        -64
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID }}/cards?filter=open",
+        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID || '6a1494722dc95789afdde69b' }}/cards?filter=open",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "trelloApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.TRELLO_API_KEY }}"
+            },
+            {
+              "name": "token",
+              "value": "={{ $env.TRELLO_TOKEN }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "node-buscar-cards-trello",
       "name": "Buscar Cards Existentes (Trello)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [376, -160],
+      "position": [
+        384,
+        -160
+      ],
       "credentials": {
         "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
+          "id": "JpoVWUghsYXiZfal",
           "name": "Trello account"
         }
       }
@@ -89,7 +94,10 @@
       "name": "Verificar Duplicata",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [376, 16]
+      "position": [
+        384,
+        16
+      ]
     },
     {
       "parameters": {
@@ -106,28 +114,54 @@
       "name": "É Novo Lead?",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 1,
-      "position": [580, -64]
+      "position": [
+        592,
+        -64
+      ]
     },
     {
       "parameters": {
-        "listId": "={{ $env.TRELLO_LIST_ID }}",
-        "name": "={{ $json.cardTitle }}",
-        "description": "={{ $json.cardDescription }}",
-        "additionalFields": {
-          "pos": "top"
-        }
+        "method": "POST",
+        "url": "https://api.trello.com/1/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "idList",
+              "value": "={{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.cardTitle }}"
+            },
+            {
+              "name": "desc",
+              "value": "={{ $json.cardDescription }}"
+            },
+            {
+              "name": "pos",
+              "value": "top"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.TRELLO_API_KEY }}"
+            },
+            {
+              "name": "token",
+              "value": "={{ $env.TRELLO_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "226992f4-a6f6-4828-a059-a7b8eb70a615",
       "name": "Criar Card no Trello (Leads)",
-      "type": "n8n-nodes-base.trello",
-      "typeVersion": 1,
-      "position": [784, -64],
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        784,
+        -64
+      ]
     },
     {
       "parameters": {
@@ -141,24 +175,26 @@
       "name": "Resposta 200 OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [992, -64]
+      "position": [
+        992,
+        -64
+      ]
     },
     {
       "parameters": {
-        "id": "={{ $env.TRELLO_BOARD_ID }}"
+        "httpMethod": "POST",
+        "path": "trello-webhook",
+        "options": {}
       },
       "id": "670a606a-5225-4f5e-8d67-1bc9a269ff65",
       "name": "Trello Trigger",
-      "type": "n8n-nodes-base.trelloTrigger",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [-336, 256],
-      "webhookId": "ceb290a2-0cd0-412a-81c4-1990f2c8d505",
-      "credentials": {
-        "trelloApi": {
-          "id": "WGhjY0TBSOX8LgMk",
-          "name": "Trello account"
-        }
-      }
+      "position": [
+        -336,
+        256
+      ],
+      "webhookId": "ceb290a2-0cd0-412a-81c4-1990f2c8d505"
     },
     {
       "parameters": {
@@ -175,7 +211,10 @@
       "name": "É movimento de lista?",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 1,
-      "position": [-48, 256]
+      "position": [
+        -48,
+        256
+      ]
     },
     {
       "parameters": {
@@ -184,11 +223,23 @@
         "rules": {
           "rules": [
             {
-              "value2": "Corretor Ágabo"
+              "value2": "Jean"
             },
             {
-              "value2": "Corretor Brisa",
+              "value2": "Ana Paula",
               "output": 1
+            },
+            {
+              "value2": "Gustavo",
+              "output": 2
+            },
+            {
+              "value2": "Isabelle",
+              "output": 3
+            },
+            {
+              "value2": "Karla",
+              "output": 3
             }
           ]
         }
@@ -197,23 +248,10 @@
       "name": "Quem é o Corretor?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
-      "position": [160, 224]
-    },
-    {
-      "parameters": {},
-      "id": "96361b47-261f-4023-a7aa-cd944aae843b",
-      "name": "Zap para Ágabo",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [464, 144]
-    },
-    {
-      "parameters": {},
-      "id": "84df08d8-873b-4350-8810-f4af6d530bc1",
-      "name": "Zap para Brisa",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [464, 320]
+      "position": [
+        160,
+        224
+      ]
     },
     {
       "parameters": {
@@ -234,14 +272,17 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"5583999931422\",\n  \"text\": \"Olá! O lead *{{ $json.action.data.card.name }}* foi adicionado à sua coluna!\"\n}",
+        "jsonBody": "={{\n  (() => {\n    const rawName = $json.action?.data?.card?.name || '';\n    const phoneMatch = rawName.match(/\\d{10,13}/);\n    const phone = phoneMatch ? phoneMatch[0] : '';\n    let name = rawName.replace(/\\(\\d{10,13}\\)/, '').replace(/Lead \\d{10,13}/, '').replace(/\\d{10,13}/, '').trim();\n    const leadDisplay = phone ? (name && name.toLowerCase() !== 'lead' ? `${name} https://wa.me/${phone}` : `https://wa.me/${phone}`) : rawName;\n    return {\n      number: \"5583999931422\",\n      text: `Olá! O lead ${leadDisplay} foi adicionado à sua coluna!`\n    };\n  })()\n}}",
         "options": {}
       },
       "id": "2c00e85f-2ccc-4bfa-97b0-d5eb69e7b82c",
       "name": "Confirmar via WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [704, 144]
+      "position": [
+        704,
+        144
+      ]
     },
     {
       "parameters": {
@@ -262,29 +303,85 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"5583921485647\",\n  \"text\": \"Olá! O lead *{{ $json.action.data.card.name }}* foi adicionado à sua coluna!\"\n}",
+        "jsonBody": "={{\n  (() => {\n    const rawName = $json.action?.data?.card?.name || '';\n    const phoneMatch = rawName.match(/\\d{10,13}/);\n    const phone = phoneMatch ? phoneMatch[0] : '';\n    let name = rawName.replace(/\\(\\d{10,13}\\)/, '').replace(/Lead \\d{10,13}/, '').replace(/\\d{10,13}/, '').trim();\n    const leadDisplay = phone ? (name && name.toLowerCase() !== 'lead' ? `${name} https://wa.me/${phone}` : `https://wa.me/${phone}`) : rawName;\n    return {\n      number: \"5583921485647\",\n      text: `Olá! O lead ${leadDisplay} foi adicionado à sua coluna!`\n    };\n  })()\n}}",
         "options": {}
       },
       "id": "dcf61f45-b2a2-49be-9ef2-aec4af808ed1",
       "name": "Confirmar via WhatsApp2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [784, 432]
+      "position": [
+        784,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "96361b47-261f-4023-a7aa-cd944aae843b",
+      "name": "Zap para Jean",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        464,
+        144
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "84df08d8-873b-4350-8810-f4af6d530bc1",
+      "name": "Zap para Ana Paula",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        464,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE || 'meu-numero' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "evo-zap-agabo-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  (() => {\n    const rawName = $json.action?.data?.card?.name || '';\n    const phoneMatch = rawName.match(/\\d{10,13}/);\n    const phone = phoneMatch ? phoneMatch[0] : '';\n    let name = rawName.replace(/\\(\\d{10,13}\\)/, '').replace(/Lead \\d{10,13}/, '').replace(/\\d{10,13}/, '').trim();\n    const leadDisplay = phone ? (name && name.toLowerCase() !== 'lead' ? `${name} https://wa.me/${phone}` : `https://wa.me/${phone}`) : rawName;\n    return {\n      number: \"5583921485647\",\n      text: `Olá! O lead ${leadDisplay} foi adicionado à sua coluna!`\n    };\n  })()\n}}",
+        "options": {}
+      },
+      "id": "b3c6b48a-5969-4733-9a69-b5585b043ba5",
+      "name": "Confirmar via WhatsApp3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        768,
+        624
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "550f3b7b-9d9f-485d-b555-768e6d192438",
+      "name": "Zap para Gustavo",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        448,
+        512
+      ]
     }
   ],
   "connections": {
     "Webhook Lead Entrada": {
-      "main": [
-        [
-          {
-            "node": "Adicionar allowedInstance",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Adicionar allowedInstance": {
       "main": [
         [
           {
@@ -387,21 +484,28 @@
       "main": [
         [
           {
-            "node": "Zap para Ágabo",
+            "node": "Zap para Jean",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Zap para Brisa",
+            "node": "Zap para Ana Paula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zap para Gustavo",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Zap para Ágabo": {
+    "Zap para Jean": {
       "main": [
         [
           {
@@ -412,7 +516,7 @@
         ]
       ]
     },
-    "Zap para Brisa": {
+    "Zap para Ana Paula": {
       "main": [
         [
           {
@@ -422,18 +526,32 @@
           }
         ]
       ]
+    },
+    "Zap para Gustavo": {
+      "main": [
+        [
+          {
+            "node": "Confirmar via WhatsApp3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": false
   },
+  "staticData": {
+    "node:Trello Trigger": {
+      "webhookId": "6a68fcff3cc4bc29b0f1f8fc"
+    }
+  },
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "99c5d246d7d74335a3fe0c3be82c14af421cc737737fda1411b46d7fb5c79882"
   },
-  "nodeGroups": [],
-  "tags": []
+  "pinData": {}
 }

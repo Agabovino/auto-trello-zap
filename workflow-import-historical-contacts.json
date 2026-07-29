@@ -22,9 +22,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID || '6a1494722dc95789afdde69b' }}/cards?filter=open",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "trelloApi",
+        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID }}/cards?filter=open",
         "options": {},
         "sendQuery": true,
         "queryParameters": {
@@ -139,7 +137,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════\n// Filtra contatos de conversas dos últimos 2 meses que não existem no Trello\n// Ordena do mais antigo para o mais novo para manter os antigos no final da lista no Trello (pos: top)\n// ═══════════════════════════════════════════════════════\n\nconst twoMonthsAgo = new Date();\ntwoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);\n\nconst chatsItems = $input.all();\nconst contactsData = $(\"Agrupar Contatos Evolution\").first().json.contacts || [];\nconst cardsData = $(\"Agrupar Cards Trello\").first().json.cards || [];\n\n// Mapeia pushNames dos contatos pelo número de telefone\nconst contactsMap = {};\nfor (const contact of contactsData) {\n  const rawJid = contact.remoteJid || '';\n  if (!rawJid || contact.isGroup) continue;\n  const phone = rawJid.split('@')[0];\n  const name = (contact.pushName || '').trim();\n  if (name) {\n    contactsMap[phone] = name;\n  }\n}\n\n// Mapeia cards do Trello para checar duplicação\nconst existingCards = cardsData.map(card => ({\n  name: (card.name || '').toLowerCase(),\n  desc: (card.desc || '').toLowerCase()\n}));\n\nconst newLeads = [];\n\nfor (const chat of chatsItems) {\n  const updatedAtStr = chat.json.updatedAt;\n  if (!updatedAtStr) continue;\n\n  const updatedAtDate = new Date(updatedAtStr);\n  if (updatedAtDate < twoMonthsAgo) continue; // Pula conversas com mais de 2 meses\n\n  const rawJid = chat.json.remoteJid || '';\n  if (rawJid.endsWith('@g.us')) continue; // Ignora grupos\n\n  let phone = '';\n  if (rawJid.includes('@s.whatsapp.net') || rawJid.includes('@c.us')) {\n    phone = rawJid.split('@')[0];\n  } else {\n    const altJid = chat.json.lastMessage?.key?.remoteJidAlt || '';\n    if (altJid.includes('@s.whatsapp.net') || altJid.includes('@c.us')) {\n      phone = altJid.split('@')[0];\n    }\n  }\n\n  if (!phone) continue;\n\n  const alreadyExists = existingCards.some(card => \n    card.name.includes(phone) || card.desc.includes(phone)\n  );\n\n  if (!alreadyExists) {\n    const displayName = contactsMap[phone] || chat.json.pushName || 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    \n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: displayName !== 'Desconhecido' ? `${displayName} (${phone})` : `Lead ${phone}`,\n        cardDescription: \n          `📲 Lead importador historicamente via WhatsApp (Últimos 2 meses)\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Última Conversa: ${new Date(updatedAtStr).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\\n` +\n          `Importado em: ${now}`,\n        updatedAt: updatedAtStr\n      }\n    });\n  }\n}\n\n// Ordena do mais antigo para o mais novo (cronológica crescente)\n// Isso garante que o mais novo seja criado por último, ficando no topo do Trello (com pos: top)\nnewLeads.sort((a, b) => new Date(a.json.updatedAt) - new Date(b.json.updatedAt));\n\nreturn newLeads;"
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// IMPORTAÇÃO HISTÓRICA COMPLETA DE CONTATOS (Evolution API -> Trello)\n// Processa TODOS os contatos da instância (atendimoveis_meta)\n// ═══════════════════════════════════════════════════════\n\nconst contactsItems = $input.all();\nconst cardsData = $(\"Agrupar Cards Trello\").first().json.cards || [];\n\n// Mapeia cards existentes no Trello para deduplicação rápida por número\nconst existingTexts = cardsData.map(card => {\n  return ((card.name || '') + ' ' + (card.desc || '')).toLowerCase();\n});\n\nconst newLeads = [];\nconst seenPhones = new Set();\n\nfor (const item of contactsItems) {\n  const c = item.json;\n  const rawJid = c.remoteJid || c.id || '';\n  if (!rawJid || rawJid.endsWith('@g.us') || c.isGroup) continue;\n\n  let phone = '';\n  if (rawJid.includes('@s.whatsapp.net') || rawJid.includes('@c.us')) {\n    phone = rawJid.split('@')[0];\n  } else {\n    const altJid = c.remoteJidAlt || '';\n    if (altJid.includes('@s.whatsapp.net') || altJid.includes('@c.us')) {\n      phone = altJid.split('@')[0];\n    }\n  }\n\n  if (!phone || phone.length < 10 || seenPhones.has(phone)) continue;\n  seenPhones.add(phone);\n\n  const alreadyExists = existingTexts.some(text => text.includes(phone));\n  if (!alreadyExists) {\n    const pushName = (c.pushName || c.profileName || c.name || '').trim();\n    const displayName = (pushName && pushName !== 'None') ? pushName : 'Desconhecido';\n    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\n    newLeads.push({\n      json: {\n        phone,\n        pushName: displayName,\n        cardTitle: displayName !== 'Desconhecido' ? `${displayName} (${phone})` : `Lead ${phone}`,\n        cardDescription:\n          `📲 Lead importado historicamente via WhatsApp\\n` +\n          `Fonte: Evolution API (Histórico)\\n\\n` +\n          `Nome: ${displayName}\\n` +\n          `Número: ${phone}\\n` +\n          `Importado em: ${now}`\n      }\n    });\n  }\n}\n\nreturn newLeads;"
       },
       "id": "node-compare-leads",
       "name": "Filtrar Apenas Novos Leads",
@@ -166,17 +164,43 @@
     },
     {
       "parameters": {
-        "listId": "={{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}",
-        "name": "={{ $('Split in Batches').item.json.cardTitle }}",
-        "description": "={{ $('Split in Batches').item.json.cardDescription }}",
-        "additionalFields": {
-          "pos": "top"
-        }
+        "method": "POST",
+        "url": "https://api.trello.com/1/cards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "idList",
+              "value": "={{ $env.TRELLO_LIST_ID }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ .cardTitle }}"
+            },
+            {
+              "name": "desc",
+              "value": "={{ .cardDescription }}"
+            },
+            {
+              "name": "pos",
+              "value": "top"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.TRELLO_API_KEY }}"
+            },
+            {
+              "name": "token",
+              "value": "={{ $env.TRELLO_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "node-create-trello-card",
       "name": "Criar Card no Trello",
-      "type": "n8n-nodes-base.trello",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [
         1080,
         200
@@ -238,7 +262,7 @@
       "main": [
         [
           {
-            "node": "Agrupar Contatos Evolution",
+            "node": "Filtrar Apenas Novos Leads",
             "type": "main",
             "index": 0
           }

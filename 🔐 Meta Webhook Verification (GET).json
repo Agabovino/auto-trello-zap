@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════\n// PARSING: Evolution API (Baileys) + Meta Cloud API\n// ═══════════════════════════════════════════════════════\n\nconst body = $input.item.json.body || $input.item.json;\n\nlet senderPhone = '';\nlet senderName  = 'Desconhecido';\nlet instanceName = '';\nlet shouldProcess = false;\n\n// ── Instância permitida (vazia = qualquer uma) ──\nconst allowedInstance = (process.env.EVOLUTION_INSTANCE || $env.EVOLUTION_INSTANCE || '').trim();\n\n// ── Detectar formato ──\nconst isEvolution = !!(body?.event || body?.data?.key);\nconst isMeta      = !!(body?.object === 'whatsapp_business_account' || body?.entry);\n\nif (isEvolution) {\n  const event = body?.event || '';\n\n  // Só processar eventos de mensagens recebidas\n  if (event && event !== 'messages.upsert') {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: evento ignorado (${event})` } }];\n  }\n\n  const data = body?.data || {};\n\n  // Ignorar mensagens enviadas pelo próprio número\n  if (data?.key?.fromMe === true) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: fromMe=true, mensagem nossa' } }];\n  }\n\n  // Ignorar grupos\n  const remoteJid = data?.key?.remoteJid || '';\n  if (remoteJid.endsWith('@g.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: mensagem de grupo ignorada' } }];\n  }\n\n  // Ignorar se não tem JID de contato individual\n  if (!remoteJid.includes('@s.whatsapp.net') && !remoteJid.includes('@c.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: JID não reconhecido' } }];\n  }\n\n  // ── Filtro por instância ──\n  instanceName = body?.instance || data?.instanceName || body?.instanceName || '';\n  if (allowedInstance && instanceName && instanceName !== allowedInstance) {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: instância ignorada (${instanceName} != ${allowedInstance})` } }];\n  }\n\n  senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');\n  senderName  = data?.pushName || body?.pushName || '';\n  shouldProcess = true;\n\n} else if (isMeta) {\n  const entry   = body?.entry?.[0];\n  const change  = entry?.changes?.[0];\n  const value   = change?.value;\n  const message = value?.messages?.[0];\n\n  if (!message) {\n    return [{ json: { shouldProcess: false, skipReason: 'Meta: callback sem messages[]' } }];\n  }\n\n  senderPhone = message.from || '';\n  const contact = value?.contacts?.[0];\n  senderName  = contact?.profile?.name || '';\n  shouldProcess = true;\n\n} else {\n  return [{ json: { shouldProcess: false, skipReason: 'Formato não reconhecido', preview: JSON.stringify(body).substring(0, 200) } }];\n}\n\nif (!senderPhone) {\n  return [{ json: { shouldProcess: false, skipReason: 'Número do remetente não identificado' } }];\n}\n\n// ── Montar dados do card ──\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst source = isEvolution ? `Evolution API${instanceName ? ` (${instanceName})` : ''}` : 'Meta Cloud API';\n\nconst displayName = (senderName && senderName.trim() !== '') ? senderName.trim() : null;\nconst cardTitle = displayName ? `${displayName} (${senderPhone})` : `Lead ${senderPhone}`;\n\nconst cardDescription =\n  `📲 Lead capturado automaticamente via WhatsApp\\n` +\n  `Fonte: ${source}\\n\\n` +\n  (displayName ? `Nome: ${displayName}\\n` : `Nome: (desconhecido)\\n`) +\n  `Número: ${senderPhone}\\n` +\n  `Data/Hora: ${now}`;\n\nreturn [{\n  json: {\n    shouldProcess,\n    senderPhone,\n    senderName: displayName || '',\n    cardTitle,\n    cardDescription,\n    instanceName,\n    timestamp: now\n  }\n}];"
+        "jsCode": "// ═══════════════════════════════════════════════════════\n// PARSING: Evolution API (Baileys) + Meta Cloud API\n// Suporta múltiplas instâncias separadas por vírgula no EVOLUTION_INSTANCE\n// Deixe vazio ou '*' para aceitar qualquer instância\n// ═══════════════════════════════════════════════════════\n\nconst body = $input.item.json.body || $input.item.json;\n\nlet senderPhone = '';\nlet senderName  = 'Desconhecido';\nlet instanceName = '';\nlet shouldProcess = false;\n\n// ── Instâncias permitidas (vazio ou '*' = qualquer uma) ──\nconst rawEnv = ((typeof $env !== 'undefined' && $env.EVOLUTION_INSTANCE) || (typeof process !== 'undefined' && process.env && process.env.EVOLUTION_INSTANCE) || '').trim();\nconst allowedInstances = rawEnv.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);\n\n// ── Detectar formato ──\nconst isEvolution = !!(body?.event || body?.data?.key);\nconst isMeta      = !!(body?.object === 'whatsapp_business_account' || body?.entry);\n\nif (isEvolution) {\n  const event = body?.event || '';\n\n  // Só processar eventos de mensagens recebidas\n  if (event && event !== 'messages.upsert') {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: evento ignorado (${event})` } }];\n  }\n\n  const data = body?.data || {};\n\n  // Ignorar mensagens enviadas pelo próprio número\n  if (data?.key?.fromMe === true) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: fromMe=true, mensagem nossa' } }];\n  }\n\n  // Ignorar grupos\n  const remoteJid = data?.key?.remoteJid || '';\n  if (remoteJid.endsWith('@g.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: mensagem de grupo ignorada' } }];\n  }\n\n  // Ignorar se não tem JID de contato individual\n  if (!remoteJid.includes('@s.whatsapp.net') && !remoteJid.includes('@c.us')) {\n    return [{ json: { shouldProcess: false, skipReason: 'Evolution: JID não reconhecido' } }];\n  }\n\n  // ── Filtro por instância ──\n  instanceName = (body?.instance || data?.instanceName || body?.instanceName || '').trim();\n  const lowerInstance = instanceName.toLowerCase();\n  \n  if (allowedInstances.length > 0 && !allowedInstances.includes('*') && lowerInstance && !allowedInstances.includes(lowerInstance)) {\n    return [{ json: { shouldProcess: false, skipReason: `Evolution: instância ignorada (${instanceName} não está em ${rawEnv})` } }];\n  }\n\n  senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');\n  senderName  = data?.pushName || body?.pushName || '';\n  shouldProcess = true;\n\n} else if (isMeta) {\n  const entry   = body?.entry?.[0];\n  const change  = entry?.changes?.[0];\n  const value   = change?.value;\n  const message = value?.messages?.[0];\n\n  if (!message) {\n    return [{ json: { shouldProcess: false, skipReason: 'Meta: callback sem messages[]' } }];\n  }\n\n  senderPhone = message.from || '';\n  const contact = value?.contacts?.[0];\n  senderName  = contact?.profile?.name || '';\n  shouldProcess = true;\n\n} else {\n  return [{ json: { shouldProcess: false, skipReason: 'Formato não reconhecido', preview: JSON.stringify(body).substring(0, 200) } }];\n}\n\nif (!senderPhone) {\n  return [{ json: { shouldProcess: false, skipReason: 'Número do remetente não identificado' } }];\n}\n\n// ── Montar título e descrição do card ──\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst source = isEvolution ? `Evolution API${instanceName ? ` (${instanceName})` : ''}` : 'Meta Cloud API';\n\nconst displayName = (senderName && senderName.trim() !== '') ? senderName.trim() : null;\n\nconst cardTitle = displayName\n  ? `${displayName} (${senderPhone})`\n  : `Lead ${senderPhone}`;\n\nconst cardDescription =\n  `📲 Lead capturado automaticamente via WhatsApp\\n` +\n  `Fonte: ${source}\\n\\n` +\n  `${displayName ? `Nome: ${displayName}\\n` : ''}` +\n  `Número: ${senderPhone}\\n` +\n  `Data/Hora: ${now}`;\n\nreturn [{\n  json: {\n    shouldProcess,\n    senderPhone,\n    senderName: displayName || '',\n    cardTitle,\n    cardDescription,\n    instanceName,\n    timestamp: now\n  }\n}];"
       },
       "id": "9b1f8029-39a3-4777-8e4f-aa35d9c6d2fd",
       "name": "Parsear Mensagem de Lead",
@@ -53,9 +53,7 @@
     },
     {
       "parameters": {
-        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID || '6a1494722dc95789afdde69b' }}/cards?filter=open",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "trelloApi",
+        "url": "=https://api.trello.com/1/boards/{{ $env.TRELLO_BOARD_ID }}/cards?filter=open",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -78,13 +76,7 @@
       "position": [
         384,
         -160
-      ],
-      "credentials": {
-        "trelloApi": {
-          "id": "JpoVWUghsYXiZfal",
-          "name": "Trello account"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -128,7 +120,7 @@
           "parameters": [
             {
               "name": "idList",
-              "value": "={{ $env.TRELLO_LIST_ID || '6a68e0681ad8093e17b2fb61' }}"
+              "value": "={{ $env.TRELLO_LIST_ID }}"
             },
             {
               "name": "name",
@@ -184,24 +176,31 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "trello-webhook",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "670a606a-5225-4f5e-8d67-1bc9a269ff65",
       "name": "Trello Trigger",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [
         -336,
         256
       ],
-      "webhookId": "ceb290a2-0cd0-412a-81c4-1990f2c8d505"
+      "webhookId": "ceb290a2-0cd0-412a-81c4-1990f2c8d505",
+      "credentials": {
+        "trelloApi": {
+          "id": "Rxvqjj5EFvc6HBRc",
+          "name": "Trello account"
+        }
+      }
     },
     {
       "parameters": {
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.action.data.listAfter?.name }}",
+              "value1": "={{ $json.body?.action?.data?.listAfter?.name || $json.action?.data?.listAfter?.name || '' }}",
               "operation": "isNotEmpty"
             }
           ]
@@ -219,7 +218,7 @@
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $json.action.data.listAfter?.name }}",
+        "value1": "={{ $json.body?.action?.data?.listAfter?.name || $json.action?.data?.listAfter?.name || '' }}",
         "rules": {
           "rules": [
             {
@@ -378,6 +377,19 @@
         448,
         512
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar payload de webhook do Trello\nconst item = $input.item.json || {};\nconst body = item.body || item;\nconst action = body.action || item.action;\n\nif (!action || !action.data || !action.data.listAfter) {\n    return [{ json: { isValidation: true, shouldProcess: false } }];\n}\n\nreturn [{ json: { ...item, action } }];"
+      },
+      "id": "node-trello-payload-validator",
+      "name": "Validar Payload Trello",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        256
+      ]
     }
   ],
   "connections": {
@@ -462,7 +474,7 @@
       "main": [
         [
           {
-            "node": "É movimento de lista?",
+            "node": "Validar Payload Trello",
             "type": "main",
             "index": 0
           }
@@ -532,6 +544,17 @@
         [
           {
             "node": "Confirmar via WhatsApp3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Payload Trello": {
+      "main": [
+        [
+          {
+            "node": "É movimento de lista?",
             "type": "main",
             "index": 0
           }

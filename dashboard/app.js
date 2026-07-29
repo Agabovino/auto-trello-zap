@@ -23,6 +23,8 @@ const CONFIG = {
   leadSourceInstance: (typeof ENV !== 'undefined' && ENV.EVOLUTION_INSTANCE) ? ENV.EVOLUTION_INSTANCE : 'meu-numero',
   // API Key do Trello
   trelloApiKey: (typeof ENV !== 'undefined' && ENV.TRELLO_API_KEY && ENV.TRELLO_API_KEY.trim() !== '') ? ENV.TRELLO_API_KEY : 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO',
+  // Token do Trello (global fallback lido do .env/servidor)
+  trelloToken: (typeof ENV !== 'undefined' && ENV.TRELLO_TOKEN && ENV.TRELLO_TOKEN.trim() !== '') ? ENV.TRELLO_TOKEN : '',
   syncWebhookPath: '/webhook/manual-trello-sync',
   statusRefreshInterval: 30_000,
   // Intervalo para polling de QR code quando instância está desconectada (ms)
@@ -462,8 +464,38 @@ const TRELLO_LS_KEY_TOKEN  = 'atendimoveis_trello_token';
 const TRELLO_LS_KEY_APIKEY = 'atendimoveis_trello_apikey';
 
 /**
- * Verifica se voltamos de um redirect do Trello (token no hash da URL).
- * Chamado ao entrar na seção Conexões.
+ * Salva credenciais manuais (API Key e Token) diretamente da interface.
+ */
+async function saveManualTrelloCredentials() {
+  const keyInput   = document.getElementById('trello-api-key-input');
+  const tokenInput = document.getElementById('trello-token-input');
+
+  const apiKey = (keyInput?.value || '').trim();
+  const token  = (tokenInput?.value || '').trim();
+
+  if (!apiKey || apiKey === 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
+    showToast('Insira uma API Key do Trello válida.', 'warning');
+    keyInput?.focus();
+    return;
+  }
+  if (!token) {
+    showToast('Insira o Token do Trello ou clique em "Entrar com Trello".', 'warning');
+    tokenInput?.focus();
+    return;
+  }
+
+  state.trelloApiKey = apiKey;
+  state.trelloToken  = token;
+  localStorage.setItem(TRELLO_LS_KEY_APIKEY, apiKey);
+  localStorage.setItem(TRELLO_LS_KEY_TOKEN, token);
+
+  addLog('info', 'Salvando novas credenciais do Trello...');
+  showToast('Credenciais salvas! Carregando perfil...', 'info');
+  await loadTrelloProfile();
+}
+
+/**
+ * Verifica se voltamos de um redirect do Trello (token no hash da URL) ou carrega credenciais salvas.
  */
 async function checkTrelloLoginReturn() {
   // 1. Verifica hash na URL (retorno do redirect OAuth)
@@ -472,14 +504,15 @@ async function checkTrelloLoginReturn() {
     const params = new URLSearchParams(hash);
     const token  = params.get('token');
     if (token) {
-      // Limpa o hash da URL sem recarregar
       history.replaceState(null, '', window.location.pathname + window.location.search);
       const lsKey = localStorage.getItem(TRELLO_LS_KEY_APIKEY);
-      const apiKey = lsKey || CONFIG.trelloApiKey || '';
+      const keyInput = document.getElementById('trello-api-key-input');
+      const apiKey = (keyInput?.value || (lsKey !== 'DISCONNECTED' ? lsKey : '') || CONFIG.trelloApiKey || '').trim();
       if (apiKey && apiKey !== 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
         state.trelloToken  = token;
         state.trelloApiKey = apiKey;
         localStorage.setItem(TRELLO_LS_KEY_TOKEN, token);
+        localStorage.setItem(TRELLO_LS_KEY_APIKEY, apiKey);
         addLog('success', 'Autenticação Trello concluída com sucesso!');
         showToast('Trello conectado com sucesso!', 'check_circle');
         await loadTrelloProfile();
@@ -488,26 +521,42 @@ async function checkTrelloLoginReturn() {
     }
   }
 
-  // 2. Verifica localStorage (sessão salva)
-  const savedToken  = localStorage.getItem(TRELLO_LS_KEY_TOKEN);
-  const savedApiKey = localStorage.getItem(TRELLO_LS_KEY_APIKEY) || CONFIG.trelloApiKey;
+  // 2. Verifica localStorage ou fallback global do servidor
+  let savedToken  = localStorage.getItem(TRELLO_LS_KEY_TOKEN);
+  let savedApiKey = localStorage.getItem(TRELLO_LS_KEY_APIKEY);
+
+  if (savedToken === 'DISCONNECTED' || savedApiKey === 'DISCONNECTED') {
+    savedToken  = null;
+    savedApiKey = null;
+  } else {
+    if (!savedToken)  savedToken  = CONFIG.trelloToken;
+    if (!savedApiKey) savedApiKey = CONFIG.trelloApiKey;
+  }
+  
+  const keyInput   = document.getElementById('trello-api-key-input');
+  const tokenInput = document.getElementById('trello-token-input');
+  if (keyInput && savedApiKey && savedApiKey !== 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
+    keyInput.value = savedApiKey;
+  }
+  if (tokenInput && savedToken) {
+    tokenInput.value = savedToken;
+  }
+
   if (savedToken && savedApiKey && savedApiKey !== 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
     state.trelloToken  = savedToken;
     state.trelloApiKey = savedApiKey;
-    const input = document.getElementById('trello-api-key-input');
-    if (input) input.value = savedApiKey;
     await loadTrelloProfile();
   }
 }
 
 /**
  * Inicia o fluxo OAuth do Trello.
- * A API Key é carregada direto do CONFIG, sem expor pro usuário.
  */
 function authorizeTrello() {
   const input  = document.getElementById('trello-api-key-input');
   const apiKeyInput = (input?.value || '').trim();
-  const apiKey = apiKeyInput || CONFIG.trelloApiKey;
+  const lsKey = localStorage.getItem(TRELLO_LS_KEY_APIKEY);
+  const apiKey = apiKeyInput || (lsKey !== 'DISCONNECTED' ? lsKey : '') || CONFIG.trelloApiKey;
 
   if (!apiKey || apiKey === 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
     showToast('Insira a API Key do Trello antes de continuar.', 'warning');
@@ -515,16 +564,18 @@ function authorizeTrello() {
     return;
   }
 
-  // Salva a API key localmente para o fluxo interno
+  // Limpa o token anterior no localStorage para não reusar credenciais velhas
+  localStorage.removeItem(TRELLO_LS_KEY_TOKEN);
+  state.trelloToken = null;
+
   localStorage.setItem(TRELLO_LS_KEY_APIKEY, apiKey);
   state.trelloApiKey = apiKey;
 
-  // Constrói a URL de autorização Trello
   const returnUrl = encodeURIComponent(window.location.href.split('#')[0]);
   const authUrl = [
     'https://trello.com/1/authorize',
     `?key=${apiKey}`,
-    `&name=Atendimoveis+Dashboard`,
+    `&name=Atendimoveis+Lead+Monitor`,
     `&response_type=token`,
     `&scope=read,write`,
     `&expiration=never`,
@@ -737,21 +788,28 @@ async function copyTrelloOrigin() {
 }
 
 /**
- * Desconecta o Trello (remove localStorage e reseta UI).
+ * Desconecta o Trello (limpa sessão e marca estado deslogado).
  */
 function disconnectTrello() {
-  localStorage.removeItem(TRELLO_LS_KEY_TOKEN);
-  localStorage.removeItem(TRELLO_LS_KEY_APIKEY);
+  localStorage.setItem(TRELLO_LS_KEY_TOKEN, 'DISCONNECTED');
+  localStorage.setItem(TRELLO_LS_KEY_APIKEY, 'DISCONNECTED');
   state.trelloToken  = null;
   state.trelloApiKey = null;
   state.trelloUser   = null;
   state.trelloBoards = [];
+  
+  const keyInput   = document.getElementById('trello-api-key-input');
+  const tokenInput = document.getElementById('trello-token-input');
+  if (keyInput)   keyInput.value   = '';
+  if (tokenInput) tokenInput.value = '';
+
   const panelNotConn = document.getElementById('trello-not-connected');
   const panelConn    = document.getElementById('trello-connected');
   if (panelNotConn) panelNotConn.classList.remove('hidden');
   if (panelConn)    panelConn.classList.add('hidden');
+  
   addLog('info', 'Trello desconectado.');
-  showToast('Trello desconectado.', 'logout');
+  showToast('Trello desconectado. Insira novas credenciais ou conecte outra conta.', 'logout');
 }
 
 // ─────────────────────────────────────────────
@@ -1058,12 +1116,16 @@ async function init() {
     showSection('connections', document.getElementById('nav-connections'));
     await checkTrelloLoginReturn();
   } else {
-    // Verifica sessão salva silenciosamente
-    const savedToken  = localStorage.getItem(TRELLO_LS_KEY_TOKEN);
+    // Verifica sessão salva ou credenciais globais do servidor
+    const savedToken  = localStorage.getItem(TRELLO_LS_KEY_TOKEN) || CONFIG.trelloToken;
     const savedApiKey = localStorage.getItem(TRELLO_LS_KEY_APIKEY) || CONFIG.trelloApiKey;
     if (savedToken && savedApiKey && savedApiKey !== 'COLOQUE_AQUI_A_SUA_API_KEY_DO_TRELLO') {
       state.trelloToken  = savedToken;
       state.trelloApiKey = savedApiKey;
+      const keyInput   = document.getElementById('trello-api-key-input');
+      const tokenInput = document.getElementById('trello-token-input');
+      if (keyInput)   keyInput.value   = savedApiKey;
+      if (tokenInput) tokenInput.value = savedToken;
       // Carrega perfil em background (sem bloquear init)
       loadTrelloProfile().catch(() => {});
     }
